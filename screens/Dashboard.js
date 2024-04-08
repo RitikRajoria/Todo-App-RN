@@ -1,17 +1,17 @@
-import { ScrollView, View, Text } from "react-native";
+import {
+  ScrollView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+} from "react-native";
 import React, { useContext, useEffect, useState } from "react";
-import { NavigationProp } from "@react-navigation/native";
 import Button from "../components/Button";
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
-import {
-  addDoc,
-  collection,
-  doc,
-  onSnapshot,
-  query,
-  getDocs,
-} from "firebase/firestore";
+import { collection, onSnapshot, getDocs } from "firebase/firestore";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
@@ -72,59 +72,78 @@ const Dashboard = ({ navigation }) => {
     return () => unsubscribe();
   }, []);
 
-  const addTodo = async (user) => {
-    try {
-      const doc = await addDoc(
-        collection(FIREBASE_DB, `todos/${user.uid}`, user.uid),
-        {
-          title: "todo 5",
-          completed: false,
-          description: "todo 5 description",
-        },
-      );
-    } catch (e) {
-      console.log(e.message);
-    } finally {
-      fetchTodos();
-      alert("Todo added successfully");
-    }
-  };
-
   return (
-    <ScrollView>
-      <View className="items-center justify-center flex-1">
-        <Text className="text-xl font-bold my-10">Dashboard</Text>
-        {todos.map((todo, index) => {
-          console.log(index + " " + todo.id);
-          return (
-            <View
-              key={todo.id}
-              className="h-16 flex-row bg-blue-200 my-2 mx-6 rounded-md items-center justify-center p-3"
-            >
-              <View className="flex-1 flex-row justify-between">
-                <View className="">
-                  <Text className="text-lg font-bold">{todo.title}</Text>
-                  <Text className="">
-                    {todo.description ?? "no description"}
-                  </Text>
-                </View>
-                <View className="justify-center">
-                  <Text>{todo.completed ? "Done" : "Remaining"}</Text>
-                </View>
-              </View>
-            </View>
-          );
-        })}
-        <Button title={"Add Todo"} onPress={() => addTodo(user)} />
-        <Button
-          title={"Sign Out"}
-          onPress={() => {
-            FIREBASE_AUTH.signOut();
-          }}
-        />
+    <SafeAreaView className="bg-white flex-1">
+      <View
+        className="h-14 flex-row items-center justify-center bg-white px-4"
+        style={styles.shadowContainer}
+      >
+        <TouchableOpacity
+          onPress={() =>
+            navigation.push("Inside", { screen: "SettingsScreen" })
+          }
+        >
+          <Ionicons name="cog-outline" size={24} />
+        </TouchableOpacity>
+        <Text
+          className="text-xl font-bold flex-1"
+          style={{ textAlign: "center" }}
+        >
+          My Todos
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.push("Inside", { screen: "CreateTodo" })}
+        >
+          <Ionicons name="add" size={24} />
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+      <ScrollView>
+        <View className="items-center justify-center pt-4">
+          {todos.length > 0 ? (
+            todos.map((todo, index) => {
+              console.log(index + 1 + " todo id: " + todo.id);
+              return (
+                <TouchableOpacity
+                  key={todo.id}
+                  className="h-16 flex-row bg-blue-200 my-2 mx-6 rounded-md items-center justify-center p-3 "
+                >
+                  <View className="flex-1">
+                    <View className=" flex-row justify-between">
+                      <View className="">
+                        <Text className="text-lg font-bold">{todo.title}</Text>
+                        <Text className="">
+                          {todo.description ?? "no description"}
+                        </Text>
+                      </View>
+                      <View className="justify-center">
+                        <Text>{todo.completed ? "Done" : "Not Done"}</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <Text>No todos</Text>
+          )}
+
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 export default Dashboard;
+
+const styles = StyleSheet.create({
+  shadowContainer: {
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 20, // Adjust the height to control the shadow's position
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 10, // Adjust the shadow's size
+    elevation: 1,
+  },
+});

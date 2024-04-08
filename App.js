@@ -1,7 +1,14 @@
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
-import { Welcome, Login, Signup, Dashboard } from "./screens";
+import {
+  Welcome,
+  Login,
+  Signup,
+  Dashboard,
+  CreateTodo,
+  SettingsScreen,
+} from "./screens";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { FIREBASE_AUTH } from "./FirebaseConfig";
 import React, { useEffect, useState } from "react";
@@ -13,7 +20,21 @@ const UserContext = React.createContext();
 function InsideLayout() {
   return (
     <InsideStack.Navigator>
-      <InsideStack.Screen name="My Todos" component={Dashboard} />
+      <InsideStack.Screen
+        name="MyTodos"
+        component={Dashboard}
+        options={{ headerShown: false }}
+      />
+      <InsideStack.Screen
+        name="CreateTodo"
+        component={CreateTodo}
+        options={{ headerShown: false }}
+      />
+      <InsideStack.Screen
+        name="SettingsScreen"
+        component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
     </InsideStack.Navigator>
   );
 }
