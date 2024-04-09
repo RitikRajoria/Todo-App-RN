@@ -9,7 +9,7 @@ import React, { useContext, useEffect, useState } from "react";
 import Button from "../components/Button";
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
-import { collection, onSnapshot, getDocs } from "firebase/firestore";
+import { collection, onSnapshot, getDocs, orderBy } from "firebase/firestore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -21,11 +21,16 @@ const Dashboard = ({ navigation }) => {
     try {
       const querySnapshot = await getDocs(
         collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+        orderBy("completed", "asc"),
       );
 
       const initialTodos = [];
       querySnapshot.forEach((doc) => {
         initialTodos.push({ id: doc.id, ...doc.data() });
+
+        console.log(
+          "🎉 initialTodos: " + doc.id + " " + JSON.stringify(doc.data()),
+        );
       });
 
       setTodos(initialTodos);
@@ -37,6 +42,7 @@ const Dashboard = ({ navigation }) => {
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+      orderBy("title", "asc"),
       (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
@@ -101,7 +107,9 @@ const Dashboard = ({ navigation }) => {
         <View className="items-center justify-center pt-4">
           {todos.length > 0 ? (
             todos.map((todo, index) => {
-              console.log(index + 1 + " todo id: " + todo.id);
+              // console.log(
+              //   index + 1 + " todo id: " + todo.id + " " + todo.title,
+              // );
               return (
                 <TouchableOpacity
                   key={todo.id}
@@ -126,7 +134,6 @@ const Dashboard = ({ navigation }) => {
           ) : (
             <Text>No todos</Text>
           )}
-
         </View>
       </ScrollView>
     </SafeAreaView>
