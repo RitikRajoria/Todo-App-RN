@@ -4,5 +4,14 @@ import Welcome from "./Welcome";
 import Dashboard from "./Dashboard";
 import CreateTodo from "./Createtodo";
 import SettingsScreen from "./SettingsScreen";
+import UpdateTodo from "./Updatetodo";
 
-export { Login, Signup, Welcome, Dashboard, CreateTodo, SettingsScreen };
+export {
+  Login,
+  Signup,
+  Welcome,
+  Dashboard,
+  CreateTodo,
+  SettingsScreen,
+  UpdateTodo,
+};

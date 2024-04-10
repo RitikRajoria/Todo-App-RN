@@ -8,6 +8,7 @@ import {
   Dashboard,
   CreateTodo,
   SettingsScreen,
+  UpdateTodo,
 } from "./screens";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { FIREBASE_AUTH } from "./FirebaseConfig";
@@ -33,6 +34,11 @@ function InsideLayout() {
       <InsideStack.Screen
         name="SettingsScreen"
         component={SettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <InsideStack.Screen
+        name="UpdateTodo"
+        component={UpdateTodo}
         options={{ headerShown: false }}
       />
     </InsideStack.Navigator>

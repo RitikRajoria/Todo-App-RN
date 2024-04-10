@@ -107,11 +107,17 @@ const Dashboard = ({ navigation }) => {
         <View className="items-center justify-center pt-4">
           {todos.length > 0 ? (
             todos.map((todo, index) => {
-              // console.log(
-              //   index + 1 + " todo id: " + todo.id + " " + todo.title,
-              // );
+              console.log(
+                "😂 " + (index + 1) + " todo id: " + todo.id + " " + todo.title,
+              );
               return (
                 <TouchableOpacity
+                  onPress={() =>
+                    navigation.push("Inside", {
+                      screen: "UpdateTodo",
+                      params: { todoData: todo },
+                    })
+                  }
                   key={todo.id}
                   className="h-16 flex-row bg-blue-200 my-2 mx-6 rounded-md items-center justify-center p-3 "
                 >
