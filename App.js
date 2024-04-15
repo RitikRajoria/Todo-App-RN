@@ -13,6 +13,7 @@ import {
 import { onAuthStateChanged, User } from "firebase/auth";
 import { FIREBASE_AUTH } from "./FirebaseConfig";
 import React, { useEffect, useState } from "react";
+import { NetworkProvider } from "./contexts/NetworkContext";
 
 const Stack = createNativeStackNavigator();
 const InsideStack = createNativeStackNavigator();
@@ -56,24 +57,26 @@ export default function App() {
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <Stack.Navigator
-            screenOptions={{ headerShown: false }}
-            initialRouteName="Welcome"
-          >
-            {user ? (
-              <Stack.Screen name="Inside" component={InsideLayout} />
-            ) : (
-              <>
-                <Stack.Screen name="Welcome" component={Welcome} />
-                <Stack.Screen name="Login" component={Login} />
-                <Stack.Screen name="Signup" component={Signup} />
-              </>
-            )}
-          </Stack.Navigator>
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <NetworkProvider>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <Stack.Navigator
+              screenOptions={{ headerShown: false }}
+              initialRouteName="Welcome"
+            >
+              {user ? (
+                <Stack.Screen name="Inside" component={InsideLayout} />
+              ) : (
+                <>
+                  <Stack.Screen name="Welcome" component={Welcome} />
+                  <Stack.Screen name="Login" component={Login} />
+                  <Stack.Screen name="Signup" component={Signup} />
+                </>
+              )}
+            </Stack.Navigator>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </NetworkProvider>
     </UserContext.Provider>
   );
 }

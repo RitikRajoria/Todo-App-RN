@@ -1,14 +1,13 @@
 import {
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
   ScrollView,
   StyleSheet,
   Modal,
 } from "react-native";
 import React, { useContext, useState } from "react";
-
+import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import Input from "../components/Input";
 import Button from "../components/Button";

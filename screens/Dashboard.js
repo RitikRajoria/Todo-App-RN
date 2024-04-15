@@ -12,10 +12,14 @@ import { UserContext } from "../App";
 import { collection, onSnapshot, getDocs, orderBy } from "firebase/firestore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { NetworkContext } from "../contexts/NetworkContext";
+import { generateRandomId } from "../utils/RandomID";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
   const [todos, setTodos] = useState([]);
+  const { isConnected } = useContext(NetworkContext);
+  const randomId = generateRandomId();
 
   const fetchTodos = async () => {
     try {
@@ -95,7 +99,7 @@ const Dashboard = ({ navigation }) => {
           className="text-xl font-bold flex-1"
           style={{ textAlign: "center" }}
         >
-          My Todos
+          {randomId}
         </Text>
         <TouchableOpacity
           onPress={() => navigation.push("Inside", { screen: "CreateTodo" })}
@@ -123,9 +127,9 @@ const Dashboard = ({ navigation }) => {
                 >
                   <View className="flex-1">
                     <View className=" flex-row justify-between">
-                      <View className="">
+                      <View className="flex-grow-0 flex-shrink pr-4">
                         <Text className="text-lg font-bold">{todo.title}</Text>
-                        <Text className="">
+                        <Text className="" numberOfLines={1}>
                           {todo.description ?? "no description"}
                         </Text>
                       </View>
