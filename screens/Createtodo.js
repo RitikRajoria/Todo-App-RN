@@ -20,6 +20,7 @@ import DatePicker, {
   getFormatedDate,
 } from "react-native-modern-datepicker";
 import { dateStringToEpoch, epochToDate } from "../utils/DateUtils";
+import DropDownPicker from "react-native-dropdown-picker";
 
 const CreateTodo = ({ navigation }) => {
   const today = new Date();
@@ -27,6 +28,7 @@ const CreateTodo = ({ navigation }) => {
   const startDate = getFormatedDate(today.setDate(today.getDate() + 1));
   const { user } = useContext(UserContext);
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(false);
   const [selectedDate, setSelectedDate] = useState();
 
   const [formData, setFormData] = useState({
@@ -34,6 +36,7 @@ const CreateTodo = ({ navigation }) => {
     description: "",
     titleError: "",
     descError: "",
+    priority: "low",
   });
 
   const handleChange = (name, value) => {
@@ -46,7 +49,7 @@ const CreateTodo = ({ navigation }) => {
   };
 
   const handleSubmit = () => {
-    const { title, description } = formData;
+    const { title, description, priority } = formData;
     const titleError = validateName(title);
     const descError = validateName(description);
 
@@ -55,13 +58,14 @@ const CreateTodo = ({ navigation }) => {
       titleError,
       descError,
     });
+
     if (user) {
       if (!titleError && !descError) {
         // Perform form submission logic
         if (!selectedDate) {
           alert("Please select a due date");
         } else {
-          addTodo(title, description, selectedDate);
+          addTodo(title, description, selectedDate, priority);
           console.log("Form submitted successfully");
         }
       } else {
@@ -73,7 +77,7 @@ const CreateTodo = ({ navigation }) => {
     }
   };
 
-  const addTodo = async (title, description, duedate) => {
+  const addTodo = async (title, description, duedate, priority) => {
     try {
       const doc = await addDoc(
         collection(FIREBASE_DB, `todos/${user.uid}`, user.uid),
@@ -83,6 +87,7 @@ const CreateTodo = ({ navigation }) => {
           description: description,
           dueDate: duedate,
           createdAt: currentDate,
+          priority: priority,
         },
       );
     } catch (e) {
@@ -117,7 +122,7 @@ const CreateTodo = ({ navigation }) => {
           Add Todo
         </Text>
       </View>
-      <ScrollView>
+      <View>
         <View className="mx-4 items-center justify-center flex-row">
           <View className=" flex-1">
             <Input
@@ -134,9 +139,55 @@ const CreateTodo = ({ navigation }) => {
               isValid={!formData.descError}
               errorMessage={formData.descError}
             />
-            <Text>
-              Due Date: {selectedDate ? epochToDate(selectedDate) : ""}
-            </Text>
+            <View className="flex-row items-center py-4">
+              <View className=" flex-row w-1/2">
+                <Text className="flex-1">
+                  Due Date: {selectedDate ? epochToDate(selectedDate) : ""}
+                </Text>
+                <TouchableOpacity onPress={toggleCalendar}>
+                  <View className="pl-1">
+                    <Ionicons
+                      name={
+                        selectedDate
+                          ? "calendar-outline"
+                          : "calendar-clear-outline"
+                      }
+                      size={24}
+                      color="#007bff"
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View className="w-1/2 flex-row items-center pl-4">
+                <Text>Priority:</Text>
+                <View style={styles.dropdownContainer} className="pl-4">
+                  <DropDownPicker
+                    open={openDropdown}
+                    value={formData.priority}
+                    items={[
+                      { label: "High", value: "high" },
+                      { label: "Low", value: "low" },
+                    ]}
+                    setOpen={setOpenDropdown}
+                    setValue={(callback) => {
+                      // Here we extract the value directly
+                      const newValue = callback(formData.priority);
+                      console.log("Setting priority to:", newValue);
+                      setFormData((prevFormData) => ({
+                        ...prevFormData,
+                        priority: newValue,
+                      }));
+                    }}
+                    setItems={() => {}}
+                    placeholder="Select priority"
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropDownContainerStyle}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* //calendar modal */}
             <Modal
               animationType="slide"
               transparent={true}
@@ -157,12 +208,14 @@ const CreateTodo = ({ navigation }) => {
                 </View>
               </View>
             </Modal>
-            <Button title="Open" onPress={toggleCalendar} />
 
-            <Button title="Add Todo" onPress={handleSubmit} />
+            {/* submit button */}
+            <View className="mt-16">
+              <Button title="Add Todo" onPress={handleSubmit} />
+            </View>
           </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -205,5 +258,14 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(128, 128, 128, 0.5)",
+  },
+  dropdownContainer: {
+    width: "60%",
+  },
+  dropdown: {
+    backgroundColor: "#ffffff",
+  },
+  dropDownContainerStyle: {
+    backgroundColor: "#ffffff",
   },
 });

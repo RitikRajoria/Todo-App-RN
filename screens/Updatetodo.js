@@ -21,6 +21,7 @@ import { dateStringToEpoch, epochToDate } from "../utils/DateUtils";
 import { validateName, validateEmail } from "../utils/Validation";
 import { collection, doc, updateDoc } from "firebase/firestore";
 import { update } from "firebase/database";
+import DropDownPicker from "react-native-dropdown-picker";
 
 const UpdateTodo = ({ route, navigation }) => {
   const { todoData } = route.params;
@@ -32,12 +33,14 @@ const UpdateTodo = ({ route, navigation }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todoData.dueDate);
   const [isCompleted, setIsCompleted] = useState(todoData.completed);
+  const [openDropdown, setOpenDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     title: todoData.title,
     description: todoData.description,
     titleError: "",
     descError: "",
+    priority: todoData.priority,
   });
 
   const handleChange = (name, value) => {
@@ -50,7 +53,7 @@ const UpdateTodo = ({ route, navigation }) => {
   };
 
   const handleSubmit = () => {
-    const { title, description } = formData;
+    const { title, description, priority } = formData;
     const titleError = validateName(title);
     const descError = validateName(description);
 
@@ -71,6 +74,7 @@ const UpdateTodo = ({ route, navigation }) => {
             dueDate: selectedDate,
             completed: isCompleted,
             createdAt: currentDate,
+            priority: priority,
           };
           editTodo(todoData.id, updatedTodo);
         }
@@ -128,7 +132,7 @@ const UpdateTodo = ({ route, navigation }) => {
           Edit Todo
         </Text>
       </View>
-      <ScrollView>
+      <View>
         <View className="mx-4 items-center justify-center flex-row">
           <View className=" flex-1">
             <Input
@@ -145,9 +149,54 @@ const UpdateTodo = ({ route, navigation }) => {
               isValid={!formData.descError}
               errorMessage={formData.descError}
             />
-            <Text>
-              Due Date: {selectedDate ? epochToDate(selectedDate) : ""}
-            </Text>
+            <View className="flex-row items-center py-4">
+              <View className=" flex-row w-1/2">
+                <Text className="flex-1">
+                  Due Date: {selectedDate ? epochToDate(selectedDate) : ""}
+                </Text>
+                <TouchableOpacity onPress={toggleCalendar}>
+                  <View className="pl-1">
+                    <Ionicons
+                      name={
+                        selectedDate
+                          ? "calendar-outline"
+                          : "calendar-clear-outline"
+                      }
+                      size={24}
+                      color="#007bff"
+                    />
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View className="w-1/2 flex-row items-center pl-4">
+                <Text>Priority:</Text>
+                <View style={styles.dropdownContainer} className="pl-4">
+                  <DropDownPicker
+                    open={openDropdown}
+                    value={formData.priority}
+                    items={[
+                      { label: "High", value: "high" },
+                      { label: "Low", value: "low" },
+                    ]}
+                    setOpen={setOpenDropdown}
+                    setValue={(callback) => {
+                      // Here we extract the value directly
+                      const newValue = callback(formData.priority);
+                      console.log("Setting priority to:", newValue);
+                      setFormData((prevFormData) => ({
+                        ...prevFormData,
+                        priority: newValue,
+                      }));
+                    }}
+                    setItems={() => {}}
+                    placeholder="Select priority"
+                    style={styles.dropdown}
+                    dropDownContainerStyle={styles.dropDownContainerStyle}
+                  />
+                </View>
+              </View>
+            </View>
+
             <Modal
               animationType="slide"
               transparent={true}
@@ -168,12 +217,11 @@ const UpdateTodo = ({ route, navigation }) => {
                 </View>
               </View>
             </Modal>
-            <Button title="Open" onPress={toggleCalendar} />
 
             <Button title="Edit Todo" onPress={handleSubmit} />
           </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };
@@ -216,5 +264,14 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(128, 128, 128, 0.5)",
+  },
+  dropdownContainer: {
+    width: "60%",
+  },
+  dropdown: {
+    backgroundColor: "#ffffff",
+  },
+  dropDownContainerStyle: {
+    backgroundColor: "#ffffff",
   },
 });
