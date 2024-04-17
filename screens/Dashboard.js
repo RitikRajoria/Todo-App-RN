@@ -9,17 +9,28 @@ import React, { useContext, useEffect, useState } from "react";
 import Button from "../components/Button";
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
-import { collection, onSnapshot, getDocs, orderBy } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  getDocs,
+  orderBy,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { NetworkContext } from "../contexts/NetworkContext";
 import { generateRandomId } from "../utils/RandomID";
+import BouncyCheckbox from "react-native-bouncy-checkbox";
+import Toast from "react-native-toast-message";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
   const [todos, setTodos] = useState([]);
   const { isConnected } = useContext(NetworkContext);
   const randomId = generateRandomId();
+  const today = new Date();
+  const currentDate = today.getTime();
 
   const fetchTodos = async () => {
     try {
@@ -82,6 +93,33 @@ const Dashboard = ({ navigation }) => {
     return () => unsubscribe();
   }, []);
 
+  const editTodoStatus = async (todoId, isChecked, todoData) => {
+    const updatedTodo = {
+      ...todoData,
+      completed: isChecked,
+      createdAt: currentDate,
+    };
+
+    try {
+      const todoRef = doc(
+        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+        todoId,
+      );
+      console.log("todoref : " + JSON.stringify(todoRef));
+      await updateDoc(todoRef, updatedTodo);
+      console.log("Todo updated successfully!");
+      Toast.show({
+        type: "success",
+        position: "bottom",
+        text1: "Todo updated successfully",
+        text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
+      });
+    } catch (error) {
+      console.error("Error editing todo:", error);
+      alert("Error editing todo: " + error.message);
+    }
+  };
+
   return (
     <SafeAreaView className="bg-white flex-1">
       <View
@@ -112,7 +150,12 @@ const Dashboard = ({ navigation }) => {
           {todos.length > 0 ? (
             todos.map((todo, index) => {
               console.log(
-                "😂 " + (index + 1) + " todo id: " + todo.id + " " + todo.title,
+                "=>>>> Todos: " +
+                  (index + 1) +
+                  " todo id: " +
+                  todo.id +
+                  " " +
+                  todo.title,
               );
               return (
                 <TouchableOpacity
@@ -134,7 +177,22 @@ const Dashboard = ({ navigation }) => {
                         </Text>
                       </View>
                       <View className="justify-center">
-                        <Text>{todo.completed ? "Done" : "Not Done"}</Text>
+                        <BouncyCheckbox
+                          isChecked={todo.completed}
+                          size={20}
+                          fillColor="#007bff"
+                          unFillColor="#FFFFFF"
+                          innerIconStyle={{ borderWidth: 1 }}
+                          onPress={(isChecked) => {
+                            const todoData = {
+                              title: todo.title,
+                              description: todo.description,
+                              priority: todo.priority,
+                              dueDate: todo.dueDate,
+                            };
+                            editTodoStatus(todo.id, isChecked, todoData);
+                          }}
+                        />
                       </View>
                     </View>
                   </View>
@@ -142,7 +200,7 @@ const Dashboard = ({ navigation }) => {
               );
             })
           ) : (
-            <Text>No todos</Text>
+            <Text className>No todos</Text>
           )}
         </View>
       </ScrollView>

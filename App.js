@@ -14,6 +14,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { FIREBASE_AUTH } from "./FirebaseConfig";
 import React, { useEffect, useState } from "react";
 import { NetworkProvider } from "./contexts/NetworkContext";
+import Toast from "react-native-toast-message";
 
 const Stack = createNativeStackNavigator();
 const InsideStack = createNativeStackNavigator();
@@ -75,6 +76,7 @@ export default function App() {
               )}
             </Stack.Navigator>
           </NavigationContainer>
+          <Toast ref={(ref) => Toast.setRef(ref)} />
         </SafeAreaProvider>
       </NetworkProvider>
     </UserContext.Provider>

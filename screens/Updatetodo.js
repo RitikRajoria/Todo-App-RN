@@ -218,7 +218,9 @@ const UpdateTodo = ({ route, navigation }) => {
               </View>
             </Modal>
 
-            <Button title="Edit Todo" onPress={handleSubmit} />
+            <View className="mt-16">
+              <Button title="Edit Todo" onPress={handleSubmit} />
+            </View>
           </View>
         </View>
       </View>
