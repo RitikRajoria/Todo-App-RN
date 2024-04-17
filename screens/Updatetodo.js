@@ -19,7 +19,7 @@ import DatePicker, {
 } from "react-native-modern-datepicker";
 import { dateStringToEpoch, epochToDate } from "../utils/DateUtils";
 import { validateName, validateEmail } from "../utils/Validation";
-import { collection, doc, updateDoc } from "firebase/firestore";
+import { collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { update } from "firebase/database";
 import DropDownPicker from "react-native-dropdown-picker";
 
@@ -100,9 +100,39 @@ const UpdateTodo = ({ route, navigation }) => {
       console.log("Todo updated successfully!");
       alert("Todo updated successfully!");
       navigation.pop();
-    } catch (error) {
-      console.error("Error editing todo:", error);
-      alert("Error editing todo: " + error.message);
+    } catch (error) {}
+  };
+
+  const deleteTodo = async (docId) => {
+    if (user) {
+      // firebase.firestore()
+      //   .doc(docPath)
+      //   .delete()
+      //   .then(() => {
+      //     console.log("Document successfully deleted!");
+      //   })
+      //   .catch((error) => {
+      //     console.error("Error removing document: ", error);
+      //   });
+
+      try {
+        const todoRef = doc(
+          collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+          docId,
+        );
+
+        console.log("todoref : " + JSON.stringify(todoRef));
+        await deleteDoc(todoRef);
+        console.log("Todo deleted successfully!");
+        alert("Todo deleted successfully!");
+        navigation.pop();
+      } catch (e) {
+        console.error("Error deleting todo:", error);
+        alert("Error deleting todo: " + error.message);
+      }
+    } else {
+      alert("Please sign in again to edit a todo");
+      FIREBASE_AUTH.signOut();
     }
   };
 
@@ -119,7 +149,7 @@ const UpdateTodo = ({ route, navigation }) => {
   return (
     <SafeAreaView className="bg-white flex-1">
       <View
-        className="pr-4 h-14 bg-white items-center flex-row justify-center"
+        className="h-14 bg-white items-center flex-row justify-center"
         style={styles.shadowContainer}
       >
         <TouchableOpacity onPress={() => navigation.pop()}>
@@ -128,9 +158,12 @@ const UpdateTodo = ({ route, navigation }) => {
           </View>
         </TouchableOpacity>
 
-        <Text className="text-xl font-bold flex-1 text-center pr-5">
-          Edit Todo
-        </Text>
+        <Text className="text-xl font-bold flex-1 text-center ">Edit Todo</Text>
+        <TouchableOpacity onPress={() => deleteTodo(todoData.id)}>
+          <View className="pr-4">
+            <Ionicons name="trash-outline" size={24} />
+          </View>
+        </TouchableOpacity>
       </View>
       <View>
         <View className="mx-4 items-center justify-center flex-row">
