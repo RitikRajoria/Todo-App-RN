@@ -15,6 +15,7 @@ import { FIREBASE_AUTH } from "./FirebaseConfig";
 import React, { useEffect, useState } from "react";
 import { NetworkProvider } from "./contexts/NetworkContext";
 import Toast from "react-native-toast-message";
+import { init } from "./database";
 
 const Stack = createNativeStackNavigator();
 const InsideStack = createNativeStackNavigator();
@@ -50,6 +51,7 @@ function InsideLayout() {
 export default function App() {
   const [user, setUser] = useState(null);
   useEffect(() => {
+    init();
     onAuthStateChanged(FIREBASE_AUTH, (user) => {
       console.log("user", user);
       setUser(user);
