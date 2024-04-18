@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import React, { useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import Button from "../components/Button";
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
@@ -23,6 +23,8 @@ import { NetworkContext } from "../contexts/NetworkContext";
 import { generateRandomId } from "../utils/RandomID";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import Toast from "react-native-toast-message";
+import { fetchTodos, init, updateTodo } from "../database";
+import { useFocusEffect } from "@react-navigation/native";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
@@ -32,93 +34,141 @@ const Dashboard = ({ navigation }) => {
   const today = new Date();
   const currentDate = today.getTime();
 
-  const fetchTodos = async () => {
-    try {
-      const querySnapshot = await getDocs(
-        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-        orderBy("completed", "asc"),
-      );
+  //TODO: dont remove
+  // const fetchTodos = async () => {
+  //   try {
+  //     const querySnapshot = await getDocs(
+  //       collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+  //       orderBy("completed", "asc"),
+  //     );
 
-      const initialTodos = [];
-      querySnapshot.forEach((doc) => {
-        initialTodos.push({ id: doc.id, ...doc.data() });
+  //     const initialTodos = [];
+  //     querySnapshot.forEach((doc) => {
+  //       initialTodos.push({ id: doc.id, ...doc.data() });
 
-        console.log(
-          "🎉 initialTodos: " + doc.id + " " + JSON.stringify(doc.data()),
-        );
-      });
+  //       console.log(
+  //         "🎉 initialTodos: " + doc.id + " " + JSON.stringify(doc.data()),
+  //       );
+  //     });
 
-      setTodos(initialTodos);
-    } catch (error) {
-      console.error("Error fetching initial data:", error);
-    }
-  };
+  //     setTodos(initialTodos);
+  //   } catch (error) {
+  //     console.error("Error fetching initial data:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    const unsubscribe = onSnapshot(
-      collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-      orderBy("title", "asc"),
-      (snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            // Handle added document
-            setTodos((prevTodos) => [
-              ...prevTodos,
-              { id: change.doc.id, ...change.doc.data() },
-            ]);
-          }
-          if (change.type === "modified") {
-            // Handle modified document
-            setTodos((prevTodos) =>
-              prevTodos.map((todo) =>
-                todo.id === change.doc.id
-                  ? { id: change.doc.id, ...change.doc.data() }
-                  : todo,
-              ),
-            );
-          }
-          if (change.type === "removed") {
-            // Handle removed document
-            setTodos((prevTodos) =>
-              prevTodos.filter((todo) => todo.id !== change.doc.id),
-            );
-          }
-        });
-      },
-    );
+  // useEffect(() => {
+  //   const unsubscribe = onSnapshot(
+  //     collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+  //     orderBy("title", "asc"),
+  //     (snapshot) => {
+  //       snapshot.docChanges().forEach((change) => {
+  //         if (change.type === "added") {
+  //           // Handle added document
+  //           setTodos((prevTodos) => [
+  //             ...prevTodos,
+  //             { id: change.doc.id, ...change.doc.data() },
+  //           ]);
+  //         }
+  //         if (change.type === "modified") {
+  //           // Handle modified document
+  //           setTodos((prevTodos) =>
+  //             prevTodos.map((todo) =>
+  //               todo.id === change.doc.id
+  //                 ? { id: change.doc.id, ...change.doc.data() }
+  //                 : todo,
+  //             ),
+  //           );
+  //         }
+  //         if (change.type === "removed") {
+  //           // Handle removed document
+  //           setTodos((prevTodos) =>
+  //             prevTodos.filter((todo) => todo.id !== change.doc.id),
+  //           );
+  //         }
+  //       });
+  //     },
+  //   );
 
-    fetchTodos();
+  //   fetchTodos();
 
-    // Return the cleanup function to unsubscribe when component unmounts
-    return () => unsubscribe();
+  //   // Return the cleanup function to unsubscribe when component unmounts
+  //   return () => unsubscribe();
+  // }, []);
+
+  // const editTodoStatus = async (todoId, isChecked, todoData) => {
+  //   const updatedTodo = {
+  //     ...todoData,
+  //     completed: isChecked,
+  //     createdAt: currentDate,
+  //   };
+
+  //   try {
+  //     const todoRef = doc(
+  //       collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+  //       todoId,
+  //     );
+  //     console.log("todoref : " + JSON.stringify(todoRef));
+  //     await updateDoc(todoRef, updatedTodo);
+  //     console.log("Todo updated successfully!");
+  //     Toast.show({
+  //       type: "success",
+  //       position: "bottom",
+  //       text1: "Todo updated successfully",
+  //       text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error editing todo:", error);
+  //     alert("Error editing todo: " + error.message);
+  //   }
+  // };
+
+  //new chnages
+  //TODO:  remove after zustand
+  const runOnFocus = useCallback(() => {
+    // Your function that you want to run when screen comes into focus
+    fetchTodos(setTodos);
+
+    // Optional: Return a function to run when the screen loses focus
+    return () => {};
   }, []);
 
-  const editTodoStatus = async (todoId, isChecked, todoData) => {
-    const updatedTodo = {
-      ...todoData,
-      completed: isChecked,
+  useFocusEffect(runOnFocus);
+  //
+
+  useEffect(() => {
+    init();
+    fetchTodos(setTodos);
+  }, []);
+
+  const editTodoStatus = (id, isChecked, todo) => {
+    const todoData = {
+      title: todo.title,
+      description: todo.description,
+      dueDate: todo.dueDate,
       createdAt: currentDate,
+      completed: isChecked,
+      priority: todo.priority,
+      id: id,
     };
 
-    try {
-      const todoRef = doc(
-        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-        todoId,
-      );
-      console.log("todoref : " + JSON.stringify(todoRef));
-      await updateDoc(todoRef, updatedTodo);
-      console.log("Todo updated successfully!");
-      Toast.show({
-        type: "success",
-        position: "bottom",
-        text1: "Todo updated successfully",
-        text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
-      });
-    } catch (error) {
-      console.error("Error editing todo:", error);
-      alert("Error editing todo: " + error.message);
-    }
+    updateTodo(todoData, (success) => {
+      if (success) {
+        Toast.show({
+          type: "success",
+          position: "bottom",
+          text1: "Todo updated successfully",
+          text2: `Todo is set to ${
+            isChecked ? "completed!" : "not completed!"
+          }`,
+        });
+      } else {
+        console.log("error occured while updating todo");
+      }
+    });
   };
+
+  //new changes
 
   return (
     <SafeAreaView className="bg-white flex-1">
@@ -155,7 +205,11 @@ const Dashboard = ({ navigation }) => {
                   " todo id: " +
                   todo.id +
                   " " +
-                  todo.title,
+                  todo.title +
+                  " createdAt:" +
+                  todo.createdAt +
+                  " dueDate: " +
+                  todo.dueDate,
               );
               return (
                 <TouchableOpacity
@@ -184,13 +238,7 @@ const Dashboard = ({ navigation }) => {
                           unFillColor="#FFFFFF"
                           innerIconStyle={{ borderWidth: 1 }}
                           onPress={(isChecked) => {
-                            const todoData = {
-                              title: todo.title,
-                              description: todo.description,
-                              priority: todo.priority,
-                              dueDate: todo.dueDate,
-                            };
-                            editTodoStatus(todo.id, isChecked, todoData);
+                            editTodoStatus(todo.id, isChecked, todo);
                           }}
                         />
                       </View>

@@ -21,6 +21,8 @@ import DatePicker, {
 } from "react-native-modern-datepicker";
 import { dateStringToEpoch, epochToDate } from "../utils/DateUtils";
 import DropDownPicker from "react-native-dropdown-picker";
+import { generateRandomId } from "../utils/RandomID";
+import { insertTodo, fetchTodos } from "../database";
 
 const CreateTodo = ({ navigation }) => {
   const today = new Date();
@@ -59,13 +61,27 @@ const CreateTodo = ({ navigation }) => {
       descError,
     });
 
+    //new line
+    const randomId = generateRandomId();
+
     if (user) {
       if (!titleError && !descError) {
         // Perform form submission logic
         if (!selectedDate) {
           alert("Please select a due date");
         } else {
-          addTodo(title, description, selectedDate, priority);
+          // new lines
+          const newTodo = {
+            id: randomId,
+            title: title,
+            description: description,
+            createdAt: currentDate,
+            dueDate: selectedDate,
+            completed: false,
+            priority: priority,
+          };
+          //new lines
+          addTodo(newTodo);
           console.log("Form submitted successfully");
         }
       } else {
@@ -77,26 +93,39 @@ const CreateTodo = ({ navigation }) => {
     }
   };
 
-  const addTodo = async (title, description, duedate, priority) => {
-    try {
-      const doc = await addDoc(
-        collection(FIREBASE_DB, `todos/${user.uid}`, user.uid),
-        {
-          title: title,
-          completed: false,
-          description: description,
-          dueDate: duedate,
-          createdAt: currentDate,
-          priority: priority,
-        },
-      );
-    } catch (e) {
-      console.log(e.message);
-    } finally {
-      alert("Todo added successfully");
-      navigation.pop();
-    }
+  // const addTodo = async (title, description, duedate, priority) => {
+  //   try {
+  //     const doc = await addDoc(
+  //       collection(FIREBASE_DB, `todos/${user.uid}`, user.uid),
+  //       {
+  //         title: title,
+  //         completed: false,
+  //         description: description,
+  //         dueDate: duedate,
+  //         createdAt: currentDate,
+  //         priority: priority,
+  //       },
+  //     );
+  //   } catch (e) {
+  //     console.log(e.message);
+  //   } finally {
+  //     alert("Todo added successfully");
+  //     navigation.pop();
+  //   }
+  // };
+
+  //new chnages
+  const addTodo = (newTodo) => {
+    insertTodo(newTodo, (success) => {
+      if (success) {
+        console.log("Todo added successfully added");
+        navigation.pop();
+      } else {
+        console.log("Todo not added");
+      }
+    });
   };
+  //new chnages
 
   function toggleCalendar() {
     setCalendarOpen(!calendarOpen);

@@ -5,6 +5,7 @@ import Button from "../components/Button";
 import { FIREBASE_AUTH } from "../FirebaseConfig";
 import { UserContext } from "../App";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { clearTodos } from "../database";
 
 const SettingsScreen = ({ navigation }) => {
   const { user, setUser } = useContext(UserContext);
@@ -28,6 +29,7 @@ const SettingsScreen = ({ navigation }) => {
         title={"Sign Out"}
         onPress={() => {
           setUser(null);
+          clearTodos();
           FIREBASE_AUTH.signOut();
         }}
       />

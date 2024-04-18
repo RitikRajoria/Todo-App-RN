@@ -22,6 +22,8 @@ import { validateName, validateEmail } from "../utils/Validation";
 import { collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { update } from "firebase/database";
 import DropDownPicker from "react-native-dropdown-picker";
+import { updateTodo, deleteTodo } from "../database";
+import Toast from "react-native-toast-message";
 
 const UpdateTodo = ({ route, navigation }) => {
   const { todoData } = route.params;
@@ -72,11 +74,14 @@ const UpdateTodo = ({ route, navigation }) => {
             title: title,
             description: description,
             dueDate: selectedDate,
-            completed: isCompleted,
+
             createdAt: currentDate,
+            completed: isCompleted,
             priority: priority,
+            //newchange
+            id: todoData.id,
           };
-          editTodo(todoData.id, updatedTodo);
+          editTodo(updatedTodo);
         }
       } else {
         console.log("Form submission failed");
@@ -87,53 +92,83 @@ const UpdateTodo = ({ route, navigation }) => {
     }
   };
 
-  const editTodo = async (todoId, updatedTodo) => {
-    console.log(todoId, updatedTodo);
+  const editTodo = async (updatedTodo) => {
+    console.log(updatedTodo);
 
-    try {
-      const todoRef = doc(
-        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-        todoId,
-      );
-      console.log("todoref : " + JSON.stringify(todoRef));
-      await updateDoc(todoRef, updatedTodo);
-      console.log("Todo updated successfully!");
-      alert("Todo updated successfully!");
-      navigation.pop();
-    } catch (error) {}
+    // try {
+    //   const todoRef = doc(
+    //     collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+    //     todoId,
+    //   );
+    //   console.log("todoref : " + JSON.stringify(todoRef));
+    //   await updateDoc(todoRef, updatedTodo);
+    //   console.log("Todo updated successfully!");
+    //   alert("Todo updated successfully!");
+    //   navigation.pop();
+    // } catch (error) {
+    //   console.log(error.message);
+    // }
+
+    //new lines
+
+    updateTodo(updatedTodo, (success) => {
+      if (success) {
+        console.log("todo updated successfully");
+        navigation.pop();
+      } else {
+        console.log("todo not updated");
+      }
+    });
   };
 
-  const deleteTodo = async (docId) => {
-    if (user) {
-      // firebase.firestore()
-      //   .doc(docPath)
-      //   .delete()
-      //   .then(() => {
-      //     console.log("Document successfully deleted!");
-      //   })
-      //   .catch((error) => {
-      //     console.error("Error removing document: ", error);
-      //   });
+  // const deleteTodo = async (docId) => {
+  //   if (user) {
+  //     // firebase.firestore()
+  //     //   .doc(docPath)
+  //     //   .delete()
+  //     //   .then(() => {
+  //     //     console.log("Document successfully deleted!");
+  //     //   })
+  //     //   .catch((error) => {
+  //     //     console.error("Error removing document: ", error);
+  //     //   });
 
-      try {
-        const todoRef = doc(
-          collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-          docId,
-        );
+  //     try {
+  //       const todoRef = doc(
+  //         collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+  //         docId,
+  //       );
 
-        console.log("todoref : " + JSON.stringify(todoRef));
-        await deleteDoc(todoRef);
-        console.log("Todo deleted successfully!");
-        alert("Todo deleted successfully!");
+  //       console.log("todoref : " + JSON.stringify(todoRef));
+  //       await deleteDoc(todoRef);
+  //       console.log("Todo deleted successfully!");
+  //       alert("Todo deleted successfully!");
+  //       navigation.pop();
+  //     } catch (e) {
+  //       console.error("Error deleting todo:", error);
+  //       alert("Error deleting todo: " + error.message);
+  //     }
+  //   } else {
+  //     alert("Please sign in again to edit a todo");
+  //     FIREBASE_AUTH.signOut();
+  //   }
+  // };
+
+  const deleteTodos = (id) => {
+    deleteTodo(id, (success) => {
+      if (success) {
+        console.log("Todo deleted");
+        Toast.show({
+          type: "info",
+          position: "bottom",
+          text1: "Todo deleted successfully",
+          visibilityTime: 1500,
+        });
         navigation.pop();
-      } catch (e) {
-        console.error("Error deleting todo:", error);
-        alert("Error deleting todo: " + error.message);
+      } else {
+        console.log("error in deleting todo");
       }
-    } else {
-      alert("Please sign in again to edit a todo");
-      FIREBASE_AUTH.signOut();
-    }
+    });
   };
 
   function toggleCalendar() {
@@ -159,7 +194,7 @@ const UpdateTodo = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text className="text-xl font-bold flex-1 text-center ">Edit Todo</Text>
-        <TouchableOpacity onPress={() => deleteTodo(todoData.id)}>
+        <TouchableOpacity onPress={() => deleteTodos(todoData.id)}>
           <View className="pr-4">
             <Ionicons name="trash-outline" size={24} />
           </View>

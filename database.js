@@ -1,5 +1,4 @@
 import * as SQLite from "expo-sqlite";
-import { generateRandomId } from "./utils/RandomID";
 
 const db = SQLite.openDatabase("todos.db");
 
@@ -16,12 +15,11 @@ const init = () => {
 };
 
 const insertTodo = (todo, callback) => {
-  const randomId = generateRandomId();
   db.transaction((tx) => {
     tx.executeSql(
       "INSERT INTO todos (id, title, description, createdAt, dueDate, completed, priority) VALUES (?, ?, ?, ?, ?, ?, ?);",
       [
-        randomId,
+        todo.id,
         todo.title,
         todo.description,
         todo.createdAt,
@@ -39,6 +37,7 @@ const insertTodo = (todo, callback) => {
 };
 
 const fetchTodos = (callback) => {
+  console.log("🥹Fetching");
   db.transaction((tx) => {
     tx.executeSql(
       "SELECT * FROM todos;",
@@ -55,11 +54,12 @@ const fetchTodos = (callback) => {
 const updateTodo = (todo, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
-      "UPDATE todos SET title = ?, description = ?, dueDate = ?, completed = ?, priority = ? WHERE id = ?;",
+      "UPDATE todos SET title = ?, description = ?, dueDate = ?,createdAt = ?, completed = ?, priority = ? WHERE id = ?;",
       [
         todo.title,
         todo.description,
         todo.dueDate,
+        todo.createdAt,
         todo.completed ? 1 : 0,
         todo.priority,
         todo.id,
@@ -87,4 +87,16 @@ const deleteTodo = (id, callback) => {
   });
 };
 
-export { init, insertTodo, fetchTodos, updateTodo, deleteTodo };
+const clearTodos = () => {
+  console.log("😇Deleting todos db");
+  db.transaction((tx) => {
+    tx.executeSql(
+      "DROP TABLE IF EXISTS todos;",
+      [],
+      () => console.log("Table deleted successfully"),
+      (txObj, error) => console.log("Error deleting table", error),
+    );
+  });
+};
+
+export { init, insertTodo, fetchTodos, updateTodo, deleteTodo, clearTodos };
