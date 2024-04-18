@@ -22,8 +22,9 @@ import { validateName, validateEmail } from "../utils/Validation";
 import { collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { update } from "firebase/database";
 import DropDownPicker from "react-native-dropdown-picker";
-import { updateTodo, deleteTodo } from "../database";
+
 import Toast from "react-native-toast-message";
+import useTodoStore from "../app/todoStore";
 
 const UpdateTodo = ({ route, navigation }) => {
   const { todoData } = route.params;
@@ -36,6 +37,10 @@ const UpdateTodo = ({ route, navigation }) => {
   const [selectedDate, setSelectedDate] = useState(todoData.dueDate);
   const [isCompleted, setIsCompleted] = useState(todoData.completed);
   const [openDropdown, setOpenDropdown] = useState(false);
+
+  //new lines
+  const { deleteTodo, todos, error, updateTodo } = useTodoStore();
+  //new lines
 
   const [formData, setFormData] = useState({
     title: todoData.title,
@@ -111,16 +116,27 @@ const UpdateTodo = ({ route, navigation }) => {
 
     //new lines
 
-    updateTodo(updatedTodo, (success) => {
-      if (success) {
-        console.log("todo updated successfully");
-        navigation.pop();
-      } else {
-        console.log("todo not updated");
-      }
-    });
+    updateTodo(updatedTodo);
+    if (error) {
+      console.log(error);
+      Toast.show({
+        text1: "Error in updating",
+        type: "error",
+        position: "bottom",
+      });
+      navigation.pop();
+    } else {
+      console.log("Todo updated successfully");
+      Toast.show({
+        type: "success",
+        position: "bottom",
+        text1: "Todo updated successfully!",
+      });
+      navigation.pop();
+    }
   };
 
+  //TODO: do not remove
   // const deleteTodo = async (docId) => {
   //   if (user) {
   //     // firebase.firestore()
@@ -154,22 +170,7 @@ const UpdateTodo = ({ route, navigation }) => {
   //   }
   // };
 
-  const deleteTodos = (id) => {
-    deleteTodo(id, (success) => {
-      if (success) {
-        console.log("Todo deleted");
-        Toast.show({
-          type: "info",
-          position: "bottom",
-          text1: "Todo deleted successfully",
-          visibilityTime: 1500,
-        });
-        navigation.pop();
-      } else {
-        console.log("error in deleting todo");
-      }
-    });
-  };
+  // };
 
   function toggleCalendar() {
     setCalendarOpen(!calendarOpen);
@@ -178,8 +179,6 @@ const UpdateTodo = ({ route, navigation }) => {
   function handleDateChange(date) {
     setSelectedDate(dateStringToEpoch(date));
   }
-
-  //   editTodo(todoId, updatedTodo);
 
   return (
     <SafeAreaView className="bg-white flex-1">
@@ -194,7 +193,28 @@ const UpdateTodo = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text className="text-xl font-bold flex-1 text-center ">Edit Todo</Text>
-        <TouchableOpacity onPress={() => deleteTodos(todoData.id)}>
+        <TouchableOpacity
+          onPress={() => {
+            deleteTodo(todoData.id);
+            if (error) {
+              Toast.show({
+                type: "error",
+                position: "bottom",
+                text1: "Error in deleting",
+                visibilityTime: 1500,
+              });
+              navigation.pop();
+            } else {
+              Toast.show({
+                type: "info",
+                position: "bottom",
+                text1: "Todo deleted successfully",
+                visibilityTime: 1500,
+              });
+              navigation.pop();
+            }
+          }}
+        >
           <View className="pr-4">
             <Ionicons name="trash-outline" size={24} />
           </View>

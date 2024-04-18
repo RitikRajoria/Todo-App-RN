@@ -23,6 +23,8 @@ import { dateStringToEpoch, epochToDate } from "../utils/DateUtils";
 import DropDownPicker from "react-native-dropdown-picker";
 import { generateRandomId } from "../utils/RandomID";
 import { insertTodo, fetchTodos } from "../database";
+import useTodoStore from "../app/todoStore";
+import Toast from "react-native-toast-message";
 
 const CreateTodo = ({ navigation }) => {
   const today = new Date();
@@ -32,6 +34,10 @@ const CreateTodo = ({ navigation }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(false);
   const [selectedDate, setSelectedDate] = useState();
+
+  //new lines
+  const { todos, addTodo, error } = useTodoStore();
+  //new lines
 
   const [formData, setFormData] = useState({
     title: "",
@@ -82,6 +88,23 @@ const CreateTodo = ({ navigation }) => {
           };
           //new lines
           addTodo(newTodo);
+          if (error) {
+            console.log(error);
+            Toast.show({
+              text1: "Error adding",
+              type: "error",
+              position: "bottom",
+            });
+            navigation.pop();
+          } else {
+            console.log("Todo added successfully");
+            Toast.show({
+              type: "success",
+              position: "bottom",
+              text1: "Todo added successfully!",
+            });
+            navigation.pop();
+          }
           console.log("Form submitted successfully");
         }
       } else {
@@ -113,19 +136,6 @@ const CreateTodo = ({ navigation }) => {
   //     navigation.pop();
   //   }
   // };
-
-  //new chnages
-  const addTodo = (newTodo) => {
-    insertTodo(newTodo, (success) => {
-      if (success) {
-        console.log("Todo added successfully added");
-        navigation.pop();
-      } else {
-        console.log("Todo not added");
-      }
-    });
-  };
-  //new chnages
 
   function toggleCalendar() {
     setCalendarOpen(!calendarOpen);

@@ -25,14 +25,19 @@ import BouncyCheckbox from "react-native-bouncy-checkbox";
 import Toast from "react-native-toast-message";
 import { fetchTodos, init, updateTodo } from "../database";
 import { useFocusEffect } from "@react-navigation/native";
+import useTodoStore from "../app/todoStore";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
-  const [todos, setTodos] = useState([]);
+  const [_todos, setTodos] = useState([]);
   const { isConnected } = useContext(NetworkContext);
   const randomId = generateRandomId();
   const today = new Date();
   const currentDate = today.getTime();
+
+  //new lines
+  const { todos, fetchTodos, updateTodo, error } = useTodoStore();
+  //new lines
 
   //TODO: dont remove
   // const fetchTodos = async () => {
@@ -123,22 +128,10 @@ const Dashboard = ({ navigation }) => {
   //   }
   // };
 
-  //new chnages
-  //TODO:  remove after zustand
-  const runOnFocus = useCallback(() => {
-    // Your function that you want to run when screen comes into focus
-    fetchTodos(setTodos);
-
-    // Optional: Return a function to run when the screen loses focus
-    return () => {};
-  }, []);
-
-  useFocusEffect(runOnFocus);
-  //
-
   useEffect(() => {
     init();
-    fetchTodos(setTodos);
+    // fetchTodos(setTodos);
+    fetchTodos();
   }, []);
 
   const editTodoStatus = (id, isChecked, todo) => {
@@ -152,20 +145,23 @@ const Dashboard = ({ navigation }) => {
       id: id,
     };
 
-    updateTodo(todoData, (success) => {
-      if (success) {
-        Toast.show({
-          type: "success",
-          position: "bottom",
-          text1: "Todo updated successfully",
-          text2: `Todo is set to ${
-            isChecked ? "completed!" : "not completed!"
-          }`,
-        });
-      } else {
-        console.log("error occured while updating todo");
-      }
-    });
+    updateTodo(todoData);
+    if (error) {
+      console.log("error occured while updating todo");
+      Toast.show({
+        text1: "Error in changing status of todo",
+        type: "error",
+        position: "bottom",
+      });
+    } else {
+      console.log("Todo status updated successfully!");
+      Toast.show({
+        type: "info",
+        position: "bottom",
+        text1: "Todo updated successfully",
+        text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
+      });
+    }
   };
 
   //new changes
@@ -187,7 +183,7 @@ const Dashboard = ({ navigation }) => {
           className="text-xl font-bold flex-1"
           style={{ textAlign: "center" }}
         >
-          {randomId}
+          My Todos
         </Text>
         <TouchableOpacity
           onPress={() => navigation.push("Inside", { screen: "CreateTodo" })}
