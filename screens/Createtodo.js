@@ -14,7 +14,7 @@ import Button from "../components/Button";
 import { validateName, validateEmail } from "../utils/Validation";
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, setDoc, doc } from "firebase/firestore";
 import DatePicker, {
   getToday,
   getFormatedDate,
@@ -25,6 +25,7 @@ import { generateRandomId } from "../utils/RandomID";
 import { insertTodo, fetchTodos } from "../database";
 import useTodoStore from "../app/todoStore";
 import Toast from "react-native-toast-message";
+import { NetworkContext } from "../contexts/NetworkContext";
 
 const CreateTodo = ({ navigation }) => {
   const today = new Date();
@@ -34,6 +35,7 @@ const CreateTodo = ({ navigation }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(false);
   const [selectedDate, setSelectedDate] = useState();
+  const { isConnected } = useContext(NetworkContext);
 
   //new lines
   const { todos, addTodo, error } = useTodoStore();
@@ -83,27 +85,18 @@ const CreateTodo = ({ navigation }) => {
             description: description,
             createdAt: currentDate,
             dueDate: selectedDate,
-            completed: false,
+            completed: 0,
             priority: priority,
           };
           //new lines
-          addTodo(newTodo);
-          if (error) {
-            console.log(error);
-            Toast.show({
-              text1: "Error adding",
-              type: "error",
-              position: "bottom",
-            });
-            navigation.pop();
+          if (isConnected) {
+            addTodoToFirebase(newTodo);
           } else {
-            console.log("Todo added successfully");
-            Toast.show({
-              type: "success",
-              position: "bottom",
-              text1: "Todo added successfully!",
-            });
-            navigation.pop();
+            const _newTodo = {
+              ...newTodo,
+              isSynced: 0,
+            };
+            addTodoLocally(_newTodo);
           }
           console.log("Form submitted successfully");
         }
@@ -116,26 +109,59 @@ const CreateTodo = ({ navigation }) => {
     }
   };
 
-  // const addTodo = async (title, description, duedate, priority) => {
-  //   try {
-  //     const doc = await addDoc(
-  //       collection(FIREBASE_DB, `todos/${user.uid}`, user.uid),
-  //       {
-  //         title: title,
-  //         completed: false,
-  //         description: description,
-  //         dueDate: duedate,
-  //         createdAt: currentDate,
-  //         priority: priority,
-  //       },
-  //     );
-  //   } catch (e) {
-  //     console.log(e.message);
-  //   } finally {
-  //     alert("Todo added successfully");
-  //     navigation.pop();
-  //   }
-  // };
+  const addTodoToFirebase = async (todoData) => {
+    try {
+      const docRef = await setDoc(
+        doc(FIREBASE_DB, `todos/${user.uid}/${user.uid}/${todoData.id}`),
+        {
+          id: todoData.id,
+          title: todoData.title,
+          completed: false,
+          description: todoData.description,
+          dueDate: todoData.dueDate,
+          createdAt: todoData.createdAt,
+          priority: todoData.priority,
+          isSynced: 1,
+        },
+      );
+      console.log("uploading todo firebase success");
+      const _newTodo = {
+        ...todoData,
+        isSynced: 1,
+      };
+      console.log("adding it locally now " + JSON.stringify(_newTodo));
+      addTodoLocally(_newTodo);
+    } catch (e) {
+      console.log(e.message);
+      console.log("uploading todo failed adding only locally");
+      const _newTodo = {
+        ...todoData,
+        isSynced: 0,
+      };
+      addTodoLocally(_newTodo);
+    }
+  };
+
+  const addTodoLocally = (newTodo) => {
+    addTodo(newTodo);
+    if (error) {
+      console.log(error);
+      Toast.show({
+        text1: "Error adding",
+        type: "error",
+        position: "bottom",
+      });
+      navigation.pop();
+    } else {
+      console.log("Todo added successfully");
+      Toast.show({
+        type: "success",
+        position: "bottom",
+        text1: "Todo added successfully!",
+      });
+      navigation.pop();
+    }
+  };
 
   function toggleCalendar() {
     setCalendarOpen(!calendarOpen);

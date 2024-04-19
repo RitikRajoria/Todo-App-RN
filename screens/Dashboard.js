@@ -205,7 +205,9 @@ const Dashboard = ({ navigation }) => {
                   " createdAt:" +
                   todo.createdAt +
                   " dueDate: " +
-                  todo.dueDate,
+                  todo.dueDate +
+                  " sync? : " +
+                  todo.isSynced,
               );
               return (
                 <TouchableOpacity
@@ -227,6 +229,9 @@ const Dashboard = ({ navigation }) => {
                         </Text>
                       </View>
                       <View className="justify-center">
+                        <Text>
+                          {todo.isSynced === 1 ? "synced" : "not synced"}
+                        </Text>
                         <BouncyCheckbox
                           isChecked={todo.completed}
                           size={20}

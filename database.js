@@ -2,8 +2,6 @@ import * as SQLite from "expo-sqlite";
 
 const db = SQLite.openDatabase("todos.db");
 
-
-
 const init = () => {
   console.log("db created");
   db.transaction(
@@ -19,7 +17,7 @@ const init = () => {
 const insertTodo = (todo, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
-      "INSERT INTO todos (id, title, description, createdAt, dueDate, completed, priority, isSynced) VALUES (?, ?, ?, ?, ?, ?, ?);",
+      "INSERT INTO todos (id, title, description, createdAt, dueDate, completed, priority, isSynced) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
       [
         todo.id,
         todo.title,
@@ -76,6 +74,7 @@ const updateTodo = (todo, callback) => {
     );
   });
 };
+
 const syncToggle = (id, isSynced, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
@@ -83,7 +82,6 @@ const syncToggle = (id, isSynced, callback) => {
       [0, todo.id],
       (_, result) => {
         callback(true);
-
       },
       (_, error) => {
         console.error("Error updating todo:", error);
