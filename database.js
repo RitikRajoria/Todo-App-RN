@@ -2,12 +2,14 @@ import * as SQLite from "expo-sqlite";
 
 const db = SQLite.openDatabase("todos.db");
 
+
+
 const init = () => {
   console.log("db created");
   db.transaction(
     (tx) => {
       tx.executeSql(
-        "CREATE TABLE IF NOT EXISTS todos (id TEXT PRIMARY KEY NOT NULL, title TEXT, description TEXT, createdAt INTEGER, dueDate INTEGER, completed INTEGER, priority TEXT);",
+        "CREATE TABLE IF NOT EXISTS todos (id TEXT PRIMARY KEY NOT NULL, title TEXT, description TEXT, createdAt INTEGER, dueDate INTEGER, completed INTEGER, priority TEXT, isSynced INTEGER);",
       );
     },
     (err) => console.error("Error creating table:", err),
@@ -17,7 +19,7 @@ const init = () => {
 const insertTodo = (todo, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
-      "INSERT INTO todos (id, title, description, createdAt, dueDate, completed, priority) VALUES (?, ?, ?, ?, ?, ?, ?);",
+      "INSERT INTO todos (id, title, description, createdAt, dueDate, completed, priority, isSynced) VALUES (?, ?, ?, ?, ?, ?, ?);",
       [
         todo.id,
         todo.title,
@@ -26,6 +28,7 @@ const insertTodo = (todo, callback) => {
         todo.dueDate,
         todo.completed ? 1 : 0,
         todo.priority,
+        0,
       ],
       (_, result) => callback(true),
       (_, error) => {
@@ -54,7 +57,7 @@ const fetchTodos = (callback) => {
 const updateTodo = (todo, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
-      "UPDATE todos SET title = ?, description = ?, dueDate = ?,createdAt = ?, completed = ?, priority = ? WHERE id = ?;",
+      "UPDATE todos SET title = ?, description = ?, dueDate = ?,createdAt = ?, completed = ?, priority = ?, isSynced = ? WHERE id = ?;",
       [
         todo.title,
         todo.description,
@@ -62,9 +65,26 @@ const updateTodo = (todo, callback) => {
         todo.createdAt,
         todo.completed ? 1 : 0,
         todo.priority,
+        0,
         todo.id,
       ],
       (_, result) => callback(true),
+      (_, error) => {
+        console.error("Error updating todo:", error);
+        callback(false);
+      },
+    );
+  });
+};
+const syncToggle = (id, isSynced, callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "UPDATE todos SET isSynced = ? WHERE id = ?;",
+      [0, todo.id],
+      (_, result) => {
+        callback(true);
+
+      },
       (_, error) => {
         console.error("Error updating todo:", error);
         callback(false);
@@ -99,4 +119,12 @@ const clearTodos = () => {
   });
 };
 
-export { init, insertTodo, fetchTodos, updateTodo, deleteTodo, clearTodos };
+export {
+  init,
+  insertTodo,
+  fetchTodos,
+  updateTodo,
+  deleteTodo,
+  clearTodos,
+  syncToggle,
+};

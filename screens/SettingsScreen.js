@@ -6,9 +6,11 @@ import { FIREBASE_AUTH } from "../FirebaseConfig";
 import { UserContext } from "../App";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { clearTodos } from "../database";
+import useTodoStore from "../app/todoStore";
 
 const SettingsScreen = ({ navigation }) => {
   const { user, setUser } = useContext(UserContext);
+  const { clearAll } = useTodoStore();
   return (
     <SafeAreaView className="bg-white flex-1 pt-2">
       <View
@@ -30,6 +32,7 @@ const SettingsScreen = ({ navigation }) => {
         onPress={() => {
           setUser(null);
           clearTodos();
+          clearAll();
           FIREBASE_AUTH.signOut();
         }}
       />
