@@ -26,7 +26,7 @@ const insertTodo = (todo, callback) => {
         todo.dueDate,
         todo.completed ? 1 : 0,
         todo.priority,
-        0,
+        todo.isSynced,
       ],
       (_, result) => callback(true),
       (_, error) => {
@@ -63,7 +63,7 @@ const updateTodo = (todo, callback) => {
         todo.createdAt,
         todo.completed ? 1 : 0,
         todo.priority,
-        0,
+        todo.isSynced,
         todo.id,
       ],
       (_, result) => callback(true),
@@ -79,7 +79,7 @@ const syncToggle = (id, isSynced, callback) => {
   db.transaction((tx) => {
     tx.executeSql(
       "UPDATE todos SET isSynced = ? WHERE id = ?;",
-      [0, todo.id],
+      [isSynced, id],
       (_, result) => {
         callback(true);
       },
@@ -104,12 +104,23 @@ const deleteTodo = (id, callback) => {
     );
   });
 };
+//for dropping table
+// const clearTodos = () => {
+//   console.log("😇Deleting todos db");
+//   db.transaction((tx) => {
+//     tx.executeSql(
+//       "DROP TABLE IF EXISTS todos;",
+//       [],
+//       () => console.log("Table deleted successfully"),
+//       (txObj, error) => console.log("Error deleting table", error),
+//     );
+//   });
 
 const clearTodos = () => {
   console.log("😇Deleting todos db");
   db.transaction((tx) => {
     tx.executeSql(
-      "DROP TABLE IF EXISTS todos;",
+      "DELETE FROM todos;",
       [],
       () => console.log("Table deleted successfully"),
       (txObj, error) => console.log("Error deleting table", error),

@@ -90,8 +90,10 @@ const CreateTodo = ({ navigation }) => {
           };
           //new lines
           if (isConnected) {
+           
             addTodoToFirebase(newTodo);
           } else {
+         
             const _newTodo = {
               ...newTodo,
               isSynced: 0,
@@ -116,7 +118,7 @@ const CreateTodo = ({ navigation }) => {
         {
           id: todoData.id,
           title: todoData.title,
-          completed: false,
+          completed: 0,
           description: todoData.description,
           dueDate: todoData.dueDate,
           createdAt: todoData.createdAt,

@@ -101,36 +101,68 @@ const Dashboard = ({ navigation }) => {
   //   return () => unsubscribe();
   // }, []);
 
-  // const editTodoStatus = async (todoId, isChecked, todoData) => {
-  //   const updatedTodo = {
-  //     ...todoData,
-  //     completed: isChecked,
-  //     createdAt: currentDate,
-  //   };
+  const editTodoStatusFirebase = async (
+    todoId,
+    isChecked,
+    priority,
+    todoData,
+  ) => {
+    const updatedTodo = {
+      ...todoData,
+      completed: isChecked ? 1 : 0,
+      priority: priority,
+      isSynced: 1,
+      id: todoId,
+    };
+    
+    try {
+      console.log("data uploading to fbase: " + JSON.stringify(updatedTodo));
+      const todoRef = doc(
+        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+        todoId,
+      );
+      await updateDoc(todoRef, updatedTodo);
+      console.log("Todo updated successfully! Now doing locally");
+      editTodoStatusLocal(updatedTodo, isChecked);
+      console.log("edit local ran");
+    } catch (error) {
+      console.error("Error editing todo:", error);
 
-  //   try {
-  //     const todoRef = doc(
-  //       collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-  //       todoId,
-  //     );
-  //     console.log("todoref : " + JSON.stringify(todoRef));
-  //     await updateDoc(todoRef, updatedTodo);
-  //     console.log("Todo updated successfully!");
-  //     Toast.show({
-  //       type: "success",
-  //       position: "bottom",
-  //       text1: "Todo updated successfully",
-  //       text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
-  //     });
-  //   } catch (error) {
-  //     console.error("Error editing todo:", error);
-  //     alert("Error editing todo: " + error.message);
-  //   }
-  // };
+      const _updatedTodo = {
+        ...todoData,
+        completed: isChecked ? 1 : 0,
+        priority: priority,
+        isSynced: 0,
+        id: todoId,
+      };
+
+      editTodoStatusLocal(_updatedTodo, isChecked);
+    }
+  };
+
+  const editTodoStatusLocal = (todoData, isChecked) => {
+    updateTodo(todoData);
+    if (error) {
+      console.log("error occured while updating todo : " + error);
+      Toast.show({
+        text1: "Error in changing status of todo",
+        type: "error",
+        position: "bottom",
+      });
+    } else {
+      console.log(".Todo status updated successfully!");
+      Toast.show({
+        type: "info",
+        position: "bottom",
+        text1: "Todo updated successfully",
+        text2: `Todo is set to ${
+          isChecked == 1 ? "completed!" : "not completed!"
+        }`,
+      });
+    }
+  };
 
   useEffect(() => {
-    init();
-    // fetchTodos(setTodos);
     fetchTodos();
   }, []);
 
@@ -140,27 +172,19 @@ const Dashboard = ({ navigation }) => {
       description: todo.description,
       dueDate: todo.dueDate,
       createdAt: currentDate,
-      completed: isChecked,
-      priority: todo.priority,
-      id: id,
     };
 
-    updateTodo(todoData);
-    if (error) {
-      console.log("error occured while updating todo");
-      Toast.show({
-        text1: "Error in changing status of todo",
-        type: "error",
-        position: "bottom",
-      });
+    if (isConnected) {
+      editTodoStatusFirebase(id, isChecked, todo.priority, todoData);
     } else {
-      console.log("Todo status updated successfully!");
-      Toast.show({
-        type: "info",
-        position: "bottom",
-        text1: "Todo updated successfully",
-        text2: `Todo is set to ${isChecked ? "completed!" : "not completed!"}`,
-      });
+      const newTodo = {
+        ...todoData,
+        completed: isChecked ? 1 : 0,
+        priority: todo.priority,
+        isSynced: 0,
+        id: id,
+      };
+      editTodoStatusLocal(newTodo);
     }
   };
 
@@ -233,7 +257,7 @@ const Dashboard = ({ navigation }) => {
                           {todo.isSynced === 1 ? "synced" : "not synced"}
                         </Text>
                         <BouncyCheckbox
-                          isChecked={todo.completed}
+                          isChecked={todo.completed === 1 ? true : false}
                           size={20}
                           fillColor="#007bff"
                           unFillColor="#FFFFFF"

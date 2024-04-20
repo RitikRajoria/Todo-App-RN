@@ -25,6 +25,7 @@ import DropDownPicker from "react-native-dropdown-picker";
 
 import Toast from "react-native-toast-message";
 import useTodoStore from "../app/todoStore";
+import { NetworkContext } from "../contexts/NetworkContext";
 
 const UpdateTodo = ({ route, navigation }) => {
   const { todoData } = route.params;
@@ -37,6 +38,7 @@ const UpdateTodo = ({ route, navigation }) => {
   const [selectedDate, setSelectedDate] = useState(todoData.dueDate);
   const [isCompleted, setIsCompleted] = useState(todoData.completed);
   const [openDropdown, setOpenDropdown] = useState(false);
+  const { isConnected } = useContext(NetworkContext);
 
   //new lines
   const { deleteTodo, todos, error, updateTodo } = useTodoStore();
@@ -79,14 +81,22 @@ const UpdateTodo = ({ route, navigation }) => {
             title: title,
             description: description,
             dueDate: selectedDate,
-
             createdAt: currentDate,
             completed: isCompleted,
             priority: priority,
-            //newchange
-            id: todoData.id,
           };
-          editTodo(updatedTodo);
+
+          if (isConnected) {
+            editTodoFirebase(updatedTodo);
+          } else {
+            const _updatedTodo = {
+              ...updatedTodo,
+              isSynced: 0,
+              id: todoData.id,
+            };
+
+            editTodoLocally(_updatedTodo);
+          }
         }
       } else {
         console.log("Form submission failed");
@@ -97,25 +107,30 @@ const UpdateTodo = ({ route, navigation }) => {
     }
   };
 
-  const editTodo = async (updatedTodo) => {
-    console.log(updatedTodo);
+  const editTodoFirebase = async (updatedTodo) => {
+    const _updatedTodo = {
+      ...updatedTodo,
+      isSynced: 1,
+      id: todoData.id,
+    };
+    try {
+      const todoRef = doc(
+        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+        todoData.id,
+      );
+      console.log("todoref : " + JSON.stringify(todoRef));
+      await updateDoc(todoRef, _updatedTodo);
+      editTodoLocally(_updatedTodo);
+    } catch (error) {
+      console.log("Error in updating todo in firebase, err: " + error.message);
+      const newTodo = { ...updatedTodo, isSynced: 0, id: todoData.id };
+      console.log("Now updating locally");
+      editTodoLocally(newTodo);
+    }
+  };
 
-    // try {
-    //   const todoRef = doc(
-    //     collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-    //     todoId,
-    //   );
-    //   console.log("todoref : " + JSON.stringify(todoRef));
-    //   await updateDoc(todoRef, updatedTodo);
-    //   console.log("Todo updated successfully!");
-    //   alert("Todo updated successfully!");
-    //   navigation.pop();
-    // } catch (error) {
-    //   console.log(error.message);
-    // }
-
-    //new lines
-
+  const editTodoLocally = (updatedTodo) => {
+    console.log("updating todo locally " + JSON.stringify(updatedTodo));
     updateTodo(updatedTodo);
     if (error) {
       console.log(error);
@@ -126,7 +141,7 @@ const UpdateTodo = ({ route, navigation }) => {
       });
       navigation.pop();
     } else {
-      console.log("Todo updated successfully");
+      console.log(".Todo updated successfully");
       Toast.show({
         type: "success",
         position: "bottom",
@@ -136,41 +151,56 @@ const UpdateTodo = ({ route, navigation }) => {
     }
   };
 
-  //TODO: do not remove
-  // const deleteTodo = async (docId) => {
-  //   if (user) {
-  //     // firebase.firestore()
-  //     //   .doc(docPath)
-  //     //   .delete()
-  //     //   .then(() => {
-  //     //     console.log("Document successfully deleted!");
-  //     //   })
-  //     //   .catch((error) => {
-  //     //     console.error("Error removing document: ", error);
-  //     //   });
+  const deleteTodos = () => {
+    if (isConnected) {
+      deleteTodoFirebase();
+    } else {
+      deleteTodoLocally();
+    }
+  };
 
-  //     try {
-  //       const todoRef = doc(
-  //         collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-  //         docId,
-  //       );
+  const deleteTodoFirebase = async () => {
+    if (user) {
+      try {
+        const todoRef = doc(
+          collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+          todoData.id,
+        );
+        console.log("todoref : " + JSON.stringify(todoRef));
+        await deleteDoc(todoRef);
+        console.log("Todo deleted from firebase! now removing locally");
+        deleteTodoLocally();
+      } catch (e) {
+        console.error("Error deleting todo from firebase:", error);
 
-  //       console.log("todoref : " + JSON.stringify(todoRef));
-  //       await deleteDoc(todoRef);
-  //       console.log("Todo deleted successfully!");
-  //       alert("Todo deleted successfully!");
-  //       navigation.pop();
-  //     } catch (e) {
-  //       console.error("Error deleting todo:", error);
-  //       alert("Error deleting todo: " + error.message);
-  //     }
-  //   } else {
-  //     alert("Please sign in again to edit a todo");
-  //     FIREBASE_AUTH.signOut();
-  //   }
-  // };
+        deleteTodoLocally();
+      }
+    } else {
+      alert("Please sign in again to edit a todo");
+      FIREBASE_AUTH.signOut();
+    }
+  };
 
-  // };
+  const deleteTodoLocally = () => {
+    deleteTodo(todoData.id);
+    if (error) {
+      Toast.show({
+        type: "error",
+        position: "bottom",
+        text1: "Error in deleting",
+        visibilityTime: 1500,
+      });
+      navigation.pop();
+    } else {
+      Toast.show({
+        type: "info",
+        position: "bottom",
+        text1: "Todo deleted successfully",
+        visibilityTime: 1500,
+      });
+      navigation.pop();
+    }
+  };
 
   function toggleCalendar() {
     setCalendarOpen(!calendarOpen);
@@ -193,28 +223,7 @@ const UpdateTodo = ({ route, navigation }) => {
         </TouchableOpacity>
 
         <Text className="text-xl font-bold flex-1 text-center ">Edit Todo</Text>
-        <TouchableOpacity
-          onPress={() => {
-            deleteTodo(todoData.id);
-            if (error) {
-              Toast.show({
-                type: "error",
-                position: "bottom",
-                text1: "Error in deleting",
-                visibilityTime: 1500,
-              });
-              navigation.pop();
-            } else {
-              Toast.show({
-                type: "info",
-                position: "bottom",
-                text1: "Todo deleted successfully",
-                visibilityTime: 1500,
-              });
-              navigation.pop();
-            }
-          }}
-        >
+        <TouchableOpacity onPress={() => deleteTodos()}>
           <View className="pr-4">
             <Ionicons name="trash-outline" size={24} />
           </View>
