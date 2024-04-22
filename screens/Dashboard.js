@@ -16,6 +16,7 @@ import {
   orderBy,
   doc,
   updateDoc,
+  setDoc,
 } from "firebase/firestore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -23,45 +24,75 @@ import { NetworkContext } from "../contexts/NetworkContext";
 import { generateRandomId } from "../utils/RandomID";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import Toast from "react-native-toast-message";
-import { fetchTodos, init, updateTodo } from "../database";
+import {
+  fetchTodos,
+  getUnsyncedTodos,
+  init,
+  isTableEmpty,
+  updateTodo,
+} from "../database";
 import { useFocusEffect } from "@react-navigation/native";
 import useTodoStore from "../app/todoStore";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
-  const [_todos, setTodos] = useState([]);
+
   const { isConnected } = useContext(NetworkContext);
   const randomId = generateRandomId();
   const today = new Date();
   const currentDate = today.getTime();
 
   //new lines
-  const { todos, fetchTodos, updateTodo, error } = useTodoStore();
+  const { todos, fetchTodos, updateTodo, addTodo, error } = useTodoStore();
   //new lines
 
   //TODO: dont remove
-  // const fetchTodos = async () => {
-  //   try {
-  //     const querySnapshot = await getDocs(
-  //       collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-  //       orderBy("completed", "asc"),
-  //     );
+  const fetchTodosFromFirebase = async (isFirstTimeFlow, unsyncedTodos) => {
+    // isFirstTimeFlow is being used to check if we are getting from firebase or uploading. true means fetching from FB and adding to local and vice versa
+    try {
+      const querySnapshot = await getDocs(
+        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+      );
 
-  //     const initialTodos = [];
-  //     querySnapshot.forEach((doc) => {
-  //       initialTodos.push({ id: doc.id, ...doc.data() });
+      const initialTodos = [];
+      querySnapshot.forEach(async (doc) => {
+        initialTodos.push({ id: doc.id, ...doc.data() });
 
-  //       console.log(
-  //         "🎉 initialTodos: " + doc.id + " " + JSON.stringify(doc.data()),
-  //       );
-  //     });
+        if (isFirstTimeFlow) {
+          //getting from firebase when user logins to check if there is some data saved on server
+          const newTodo = {
+            id: doc.id,
+            title: doc.data().title,
+            description: doc.data().description,
+            createdAt: doc.data().createdAt,
+            dueDate: doc.data().dueDate,
+            completed: doc.data().completed ? 1 : 0,
+            priority: doc.data().priority,
+            isSynced: 1,
+          };
 
-  //     setTodos(initialTodos);
-  //   } catch (error) {
-  //     console.error("Error fetching initial data:", error);
-  //   }
-  // };
+          await addTodo(newTodo);
+        }
+      });
 
+      if (!isFirstTimeFlow && unsyncedTodos) {
+        await uploadUnsyncedTodos(unsyncedTodos, initialTodos);
+      }
+
+      if (error) {
+        alert(
+          "Some error occured while syncing with server , error: " +
+            error.message,
+        );
+      }
+
+      console.log("found " + initialTodos.length + " from firebase");
+    } catch (error) {
+      console.error("Error fetching initial data:", error);
+    }
+  };
+
+  // code for auto updating todos when some chnages happen in firestore
   // useEffect(() => {
   //   const unsubscribe = onSnapshot(
   //     collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
@@ -114,7 +145,7 @@ const Dashboard = ({ navigation }) => {
       isSynced: 1,
       id: todoId,
     };
-    
+
     try {
       console.log("data uploading to fbase: " + JSON.stringify(updatedTodo));
       const todoRef = doc(
@@ -163,8 +194,144 @@ const Dashboard = ({ navigation }) => {
   };
 
   useEffect(() => {
-    fetchTodos();
+    isTableEmpty((isEmpty) => {
+      if (isEmpty) {
+        console.log("✅table is empty");
+        if (isConnected) {
+          console.log("✅ internet connected! getting data from firebase");
+          fetchTodosFromFirebase(true, null);
+        } else {
+          console.log("✅ internet not connected! getting data from local now");
+          fetchTodos();
+        }
+      } else {
+        console.log("✅ table is not empty, getting from local");
+        fetchTodos();
+
+        getUnsyncedTodos((unsyncedTodos, todosListFromFirebase) => {
+          if (unsyncedTodos.length > 0) {
+            if (isConnected) {
+              fetchTodosFromFirebase(false, unsyncedTodos);
+            } else {
+              alert(
+                "Turn on internet to sync your todos with server! \n Go to 'Settings > Sync todos' to save your todos in server ",
+              );
+            }
+          }
+        });
+      }
+    });
   }, []);
+
+  const uploadUnsyncedTodos = (unsyncedTodos, todosFromFirebase) => {
+    console.log(
+      "unsynced todos: " +
+        JSON.stringify(unsyncedTodos) +
+        " \n todosFromFirebase : " +
+        JSON.stringify(todosFromFirebase),
+    );
+    unsyncedTodos.forEach((itemA) => {
+      // Checking if itemA ID exists in listB
+      const isPresentInListB = todosFromFirebase.some(
+        (itemB) => itemB.id === itemA.id,
+      );
+
+      if (isPresentInListB) {
+        // run uploadDoc function to update the already available todo in firebase (the user have updated this todo when he was offline)
+        const updatedTodo = {
+          title: itemA.title,
+          description: itemA.description,
+          dueDate: itemA.dueDate,
+          createdAt: itemA.createdAt,
+          completed: itemA.completed,
+          priority: itemA.priority,
+        };
+        editTodoFirebase(updatedTodo, itemA.id);
+      } else {
+        // run setDoc function to create the todo in firebase (the user have created this todo when he was offline)
+
+        addTodoToFirebase(itemA);
+      }
+    });
+  };
+
+  //creating page code
+  const addTodoToFirebase = async (todoData) => {
+    try {
+      const docRef = await setDoc(
+        doc(FIREBASE_DB, `todos/${user.uid}/${user.uid}/${todoData.id}`),
+        {
+          id: todoData.id,
+          title: todoData.title,
+          completed: todoData.completed,
+          description: todoData.description,
+          dueDate: todoData.dueDate,
+          createdAt: todoData.createdAt,
+          priority: todoData.priority,
+          isSynced: 1,
+        },
+      );
+      console.log("uploading todo firebase success");
+      const updatedTodo = {
+        title: todoData.title,
+        description: todoData.description,
+        dueDate: todoData.dueDate,
+        createdAt: todoData.createdAt,
+        completed: todoData.completed == 1 ? true : false,
+        priority: todoData.priority,
+        isSynced: 1,
+        id: todoData.id,
+      };
+      console.log("adding it locally now " + JSON.stringify(updatedTodo));
+      editTodoLocally(updatedTodo);
+    } catch (e) {
+      console.log(e.message);
+    }
+  };
+
+  //creating page code
+
+  //editing page code
+  const editTodoFirebase = async (updatedTodo, id) => {
+    const _updatedTodo = {
+      ...updatedTodo,
+      isSynced: 1,
+      id: id,
+    };
+
+    try {
+      const todoRef = doc(
+        collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
+        id,
+      );
+      console.log("todoref : " + JSON.stringify(todoRef));
+      await updateDoc(todoRef, _updatedTodo);
+      editTodoLocally(_updatedTodo);
+    } catch (error) {
+      console.log("Error in updating todo in firebase, err: " + error.message);
+    }
+  };
+
+  const editTodoLocally = (updatedTodo) => {
+    console.log("updating todo locally " + JSON.stringify(updatedTodo));
+    updateTodo(updatedTodo);
+    if (error) {
+      console.log(error);
+      Toast.show({
+        text1: "Error in updating",
+        type: "error",
+        position: "bottom",
+      });
+    } else {
+      console.log("..Todo synced successfully");
+      Toast.show({
+        type: "success",
+        position: "bottom",
+        text1: "Todo synced successfully!",
+      });
+    }
+  };
+  //editing page code
 
   const editTodoStatus = (id, isChecked, todo) => {
     const todoData = {
@@ -187,8 +354,6 @@ const Dashboard = ({ navigation }) => {
       editTodoStatusLocal(newTodo);
     }
   };
-
-  //new changes
 
   return (
     <SafeAreaView className="bg-white flex-1">
@@ -231,7 +396,9 @@ const Dashboard = ({ navigation }) => {
                   " dueDate: " +
                   todo.dueDate +
                   " sync? : " +
-                  todo.isSynced,
+                  todo.isSynced +
+                  " completed: " +
+                  todo.completed,
               );
               return (
                 <TouchableOpacity

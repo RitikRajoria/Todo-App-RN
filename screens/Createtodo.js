@@ -287,7 +287,7 @@ const CreateTodo = ({ navigation }) => {
   );
 };
 
-export default CreateTodo;
+export default CreateTodo ;
 
 const styles = StyleSheet.create({
   shadowContainer: {

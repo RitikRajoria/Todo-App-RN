@@ -61,7 +61,7 @@ const updateTodo = (todo, callback) => {
         todo.description,
         todo.dueDate,
         todo.createdAt,
-        todo.completed ? 1 : 0,
+        todo.completed,
         todo.priority,
         todo.isSynced,
         todo.id,
@@ -128,6 +128,37 @@ const clearTodos = () => {
   });
 };
 
+const isTableEmpty = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT COUNT(*) as count FROM todos;",
+      [],
+      (_, { rows: { _array } }) => {
+        const count = _array[0].count;
+        callback(count === 0); // Pass true if count is 0 (table is empty), otherwise false
+      },
+      (_, error) => {
+        console.error("Error checking if table is empty:", error);
+        callback(true); // Assuming an error means the table is empty for safety
+      },
+    );
+  });
+};
+
+const getUnsyncedTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE isSynced = 0;",
+      [],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching unsynced todos:", error);
+        callback([]);
+      },
+    );
+  });
+};
+
 export {
   init,
   insertTodo,
@@ -136,4 +167,6 @@ export {
   deleteTodo,
   clearTodos,
   syncToggle,
+  isTableEmpty,
+  getUnsyncedTodos,
 };

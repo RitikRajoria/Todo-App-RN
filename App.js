@@ -55,6 +55,7 @@ export default function App() {
     onAuthStateChanged(FIREBASE_AUTH, (user) => {
       console.log("user", user);
       setUser(user);
+      
     });
   }, []);
 
