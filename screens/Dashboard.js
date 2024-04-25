@@ -42,9 +42,7 @@ const Dashboard = ({ navigation }) => {
   const today = new Date();
   const currentDate = today.getTime();
 
-  //new lines
   const { todos, fetchTodos, updateTodo, addTodo, error } = useTodoStore();
-  //new lines
 
   //TODO: dont remove
   const fetchTodosFromFirebase = async (isFirstTimeFlow, unsyncedTodos) => {

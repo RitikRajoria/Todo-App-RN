@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { NetworkProvider } from "./contexts/NetworkContext";
 import Toast from "react-native-toast-message";
 import { init } from "./database";
+import { useFonts } from "expo-font";
 
 const Stack = createNativeStackNavigator();
 const InsideStack = createNativeStackNavigator();
@@ -50,12 +51,30 @@ function InsideLayout() {
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const fontLoaded = useFonts({
+    InterRegular: require("./assets/fonts/Inter-Regular.ttf"),
+    InterMedium: require("./assets/fonts/Inter-Medium.ttf"),
+    InterBold: require("./assets/fonts/Inter-Bold.ttf"),
+    InterSemiBold: require("./assets/fonts/Inter-SemiBold.ttf"),
+    InterBoldItalic: require("./assets/fonts/InterTight-BoldItalic.ttf"),
+    InterItalic: require("./assets/fonts/InterTight-Italic.ttf"),
+    InterLightItalic: require("./assets/fonts/InterTight-LightItalic.ttf"),
+    InterSemiBoldItalic: require("./assets/fonts/InterTight-SemiBoldItalic.ttf"),
+    InterMediumItalic: require("./assets/fonts/InterTight-MediumItalic.ttf"),
+    RobotoRegular: require("./assets/fonts/Roboto-Regular.ttf"),
+    RobotoBold: require("./assets/fonts/Roboto-Bold.ttf"),
+  });
+
+  if (!fontLoaded) {
+    console.log("No font loaded");
+    return null;
+  }
+
   useEffect(() => {
     init();
     onAuthStateChanged(FIREBASE_AUTH, (user) => {
       console.log("user", user);
       setUser(user);
-      
     });
   }, []);
 
