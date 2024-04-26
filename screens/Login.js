@@ -149,7 +149,6 @@ const styles = StyleSheet.create({
     fontFamily: "RobotoLight",
   },
   signUp: {
-    textDecoration: "underline",
     fontFamily: "RobotoBold",
   },
   input: {

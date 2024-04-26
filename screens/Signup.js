@@ -182,7 +182,6 @@ const styles = StyleSheet.create({
     fontFamily: "RobotoLight",
   },
   signIn: {
-    textDecoration: "underline",
     fontFamily: "RobotoBold",
   },
   biglogotop: {
