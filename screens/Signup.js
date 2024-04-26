@@ -16,15 +16,17 @@ import {
   signInWithEmailAndPassword,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import OnBoardInput from "../components/OnBoardInput";
+import { validateEmail, validateName } from "../utils/Validation";
+import BackgroundImage from "../components/BackgroundWithContent";
+import { LogoBig } from "../assets/svgs/logo-big";
+import { Logo } from "../assets/svgs/logo";
 
 const Signup = ({ navigation }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [name, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const auth = FIREBASE_AUTH;
 
-  const signUp = async () => {
+  const signUp = async (email, password, name) => {
     setIsLoading(true);
     try {
       const result = await createUserWithEmailAndPassword(
@@ -57,66 +59,151 @@ const Signup = ({ navigation }) => {
     }
   };
 
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    name: "",
+    emailError: "",
+    passwordError: "",
+    nameError: "",
+  });
+
+  const handleChange = (name, value, isEmail) => {
+    if (isEmail) {
+      setFormData({
+        ...formData,
+        [name]: value,
+        [`${name}Error`]: "",
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value,
+        [`${name}Error`]: "",
+      });
+    }
+  };
+
+  const handleSubmit = () => {
+    const { email, password, name } = formData;
+    const emailError = validateEmail(email);
+    const passwordError = validateName(password);
+    const nameError = validateName(name);
+
+    setFormData({
+      ...formData,
+      emailError,
+      passwordError,
+      nameError,
+    });
+
+    if (!emailError && !passwordError && !nameError) {
+      signUp(email, password, name);
+    }
+  };
+
   return (
-    <SafeAreaView className="items-center justify-center">
-      <Text className="text-4xl font-bold my-24">SIGNUP!</Text>
-      <View className="items-center justify-center mx-7">
-        <TextInput
-          className="w-72"
-          style={styles.input}
-          value={name}
-          placeholder="Name"
-          autoCapitalize="none"
-          onChangeText={(text) => setUsername(text)}
-        ></TextInput>
-        <TextInput
-          className="w-72"
-          style={styles.input}
-          value={email}
-          placeholder="Email"
-          autoCapitalize="none"
-          onChangeText={(text) => setEmail(text)}
-        ></TextInput>
-        <TextInput
-          className="w-72"
-          style={styles.input}
-          value={password}
-          placeholder="Password"
-          autoCapitalize="none"
-          onChangeText={(text) => setPassword(text)}
-          secureTextEntry={true}
-        ></TextInput>
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#0000ff" className="my-10" />
-        ) : (
-          <>
-            <Button
-              title={"Signup"}
-              onPress={() => signUp()}
-              isLoading={isLoading}
-            />
-            <View className="flex-row">
-              <Text>Already have an account? </Text>
-              <TouchableOpacity onPress={() => navigation.navigate("Login")}>
-                <Text className="font-bold text-md">Login</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
+    <BackgroundImage>
+      <View style={styles.biglogobottom}>
+        <LogoBig height={132} width={126} />
       </View>
-    </SafeAreaView>
+      <View style={styles.biglogotop}>
+        <LogoBig height={132} width={126} />
+      </View>
+      <View className="flex-row" style={styles.smallheading}>
+        <View className="flex-row justify-center items-center">
+          <Logo height={15} width={20} color="#000" />
+          <Text style={styles.todoHive}>Todo Hive</Text>
+        </View>
+      </View>
+      <SafeAreaView className="flex-1 items-center justify-center">
+        <Text style={styles.signUp} className="my-6">
+          Sign up
+        </Text>
+        <View className=" items-center justify-center mx-7 ">
+          <View className="flex-row">
+            <OnBoardInput
+              value={formData.name}
+              onChangeText={(value) => handleChange("name", value, false)}
+              placeholder="Your Name"
+              isValid={!formData.nameError}
+              errorMessage={formData.nameError}
+              isPassword={false}
+            />
+          </View>
+          <View className="flex-row">
+            <OnBoardInput
+              value={formData.email}
+              onChangeText={(value) => handleChange("email", value, true)}
+              placeholder="Email"
+              isValid={!formData.emailError}
+              errorMessage={formData.emailError}
+              isPassword={false}
+            />
+          </View>
+          <View className="flex-row">
+            <OnBoardInput
+              value={formData.password}
+              onChangeText={(value) => handleChange("password", value, true)}
+              placeholder="Password"
+              isValid={!formData.passwordError}
+              errorMessage={formData.passwordError}
+              isPassword={true}
+            />
+          </View>
+
+          <Button
+            title={"Sign up"}
+            onPress={() => handleSubmit()}
+            isLoading={isLoading}
+          />
+          <View className="flex-row my-9">
+            <Text style={styles.alreadyHaveAn}>Already have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Login")}>
+              <Text style={styles.signIn}>Sign in</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    </BackgroundImage>
   );
 };
 
 export default Signup;
 
 const styles = StyleSheet.create({
-  input: {
-    marginVertical: 4,
-    height: 50,
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 10,
-    backgroundColor: "#fff",
+  signUp: {
+    fontSize: 21,
+    fontFamily: "RobotoMedium",
+    color: "#000",
+    textAlign: "left",
+  },
+  alreadyHaveAn: {
+    fontFamily: "RobotoLight",
+  },
+  signIn: {
+    textDecoration: "underline",
+    fontFamily: "RobotoBold",
+  },
+  biglogotop: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+  },
+  smallheading: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+  },
+  biglogobottom: {
+    transform: [{ rotate: "180deg" }],
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+  },
+  todoHive: {
+    color: "black",
+    fontSize: 16,
+    fontFamily: "InterSemiBold",
   },
 });

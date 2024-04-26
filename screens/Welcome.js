@@ -63,7 +63,7 @@ const styles = StyleSheet.create({
   heading: {
     color: "black",
     fontSize: 40.72,
-    wordWrap: "break-word",
+
     fontFamily: "InterSemiBold",
   },
   subHeading: {
@@ -72,7 +72,6 @@ const styles = StyleSheet.create({
     fontSize: 13.72,
     fontFamily: "InterLightItalic",
     textAlign: "center",
-    wordWrap: "break-word",
   },
   button: {
     width: 130,

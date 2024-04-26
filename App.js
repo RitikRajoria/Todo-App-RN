@@ -17,6 +17,7 @@ import { NetworkProvider } from "./contexts/NetworkContext";
 import Toast from "react-native-toast-message";
 import { init } from "./database";
 import { useFonts } from "expo-font";
+import { AppLoading } from "expo";
 
 const Stack = createNativeStackNavigator();
 const InsideStack = createNativeStackNavigator();
@@ -63,11 +64,12 @@ export default function App() {
     InterMediumItalic: require("./assets/fonts/InterTight-MediumItalic.ttf"),
     RobotoRegular: require("./assets/fonts/Roboto-Regular.ttf"),
     RobotoBold: require("./assets/fonts/Roboto-Bold.ttf"),
+    RobotoMedium: require("./assets/fonts/Roboto-Medium.ttf"),
+    RobotoLight: require("./assets/fonts/Roboto-Light.ttf"),
   });
 
   if (!fontLoaded) {
-    console.log("No font loaded");
-    return null;
+    return <AppLoading />;
   }
 
   useEffect(() => {

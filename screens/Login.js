@@ -16,15 +16,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import BackgroundImage from "../components/BackgroundWithContent";
 import { LogoBig } from "../assets/svgs/logo-big";
 import { Logo } from "../assets/svgs/logo";
+import OnBoardInput from "../components/OnBoardInput";
+import { validateName, validateEmail } from "../utils/Validation";
 
 const Login = ({ navigation }) => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [name, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const auth = FIREBASE_AUTH;
 
-  const signIn = async () => {
+  const signIn = async (email, password) => {
     setIsLoading(true);
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
@@ -42,6 +42,47 @@ const Login = ({ navigation }) => {
       alert("Sign in Failed: " + error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+    emailError: "",
+    passwordError: "",
+  });
+
+  const handleChange = (name, value, isEmail) => {
+    if (isEmail) {
+      // const error = validateEmail(value);
+      setFormData({
+        ...formData,
+        [name]: value,
+        [`${name}Error`]: "",
+      });
+    } else {
+      // const error = validateName(value);
+      setFormData({
+        ...formData,
+        [name]: value,
+        [`${name}Error`]: "",
+      });
+    }
+  };
+
+  const handleSubmit = () => {
+    const { email, password } = formData;
+    const emailError = validateEmail(email);
+    const passwordError = validateName(password);
+
+    setFormData({
+      ...formData,
+      emailError,
+      passwordError,
+    });
+
+    if (!emailError && !passwordError) {
+      signIn(email, password);
     }
   };
 
@@ -63,40 +104,38 @@ const Login = ({ navigation }) => {
         <Text style={styles.welcomeBack}>Welcome Back!</Text>
         <View className="items-center justify-center mx-7">
           <View className="flex-row">
-            <TextInput
-              style={styles.input}
-              value={email}
+            <OnBoardInput
+              value={formData.email}
+              onChangeText={(value) => handleChange("email", value, true)}
               placeholder="Email"
-              autoCapitalize="none"
-              onChangeText={(text) => setEmail(text)}
+              isValid={!formData.emailError}
+              errorMessage={formData.emailError}
+              isPassword={false}
             />
           </View>
 
-          <TextInput
-            style={styles.input}
-            value={password}
+          <OnBoardInput
+            value={formData.password}
+            onChangeText={(value) => handleChange("password", value, false)}
             placeholder="Password"
-            autoCapitalize="none"
-            onChangeText={(text) => setPassword(text)}
-            secureTextEntry={true}
+            isValid={!formData.passwordError}
+            errorMessage={formData.passwordError}
+            isPassword={true}
           />
-          {isLoading ? (
-            <ActivityIndicator size="large" color="#0000ff" className="my-10" />
-          ) : (
-            <>
-              <Button
-                title={"Signin"}
-                onPress={() => signIn()}
-                isLoading={isLoading}
-              />
-              <View className="flex-row">
-                <Text>Dont't have an account? </Text>
-                <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
-                  <Text className="font-bold text-md">Signup</Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          )}
+
+          <Button
+            title={"Login"}
+            onPress={() => handleSubmit()}
+            isLoading={isLoading}
+            color="black"
+          />
+
+          <View className="flex-row py-9">
+            <Text style={styles.dontHaveAn}>Dont't have an account? </Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+              <Text style={styles.signUp}>Signup</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
     </BackgroundImage>
@@ -106,14 +145,13 @@ const Login = ({ navigation }) => {
 export default Login;
 
 const styles = StyleSheet.create({
-  // input: {
-  //   marginVertical: 4,
-  //   height: 50,
-  //   borderWidth: 1,
-  //   borderRadius: 4,
-  //   padding: 10,
-  //   backgroundColor: "#fff",
-  // },
+  dontHaveAn: {
+    fontFamily: "RobotoLight",
+  },
+  signUp: {
+    textDecoration: "underline",
+    fontFamily: "RobotoBold",
+  },
   input: {
     borderRadius: 8,
     backgroundColor: "rgba(255, 255, 255, 0.3)",
@@ -130,7 +168,6 @@ const styles = StyleSheet.create({
   todoHive: {
     color: "black",
     fontSize: 16,
-    wordWrap: "break-word",
     fontFamily: "InterSemiBold",
   },
   welcomeBack: {
@@ -139,7 +176,6 @@ const styles = StyleSheet.create({
     fontFamily: "RobotoBold",
     color: "#000",
     textAlign: "center",
-
     flexDirection: "row",
     flexShrink: 0,
   },
