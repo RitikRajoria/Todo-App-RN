@@ -56,6 +56,7 @@ export default function App() {
     InterRegular: require("./assets/fonts/Inter-Regular.ttf"),
     InterMedium: require("./assets/fonts/Inter-Medium.ttf"),
     InterBold: require("./assets/fonts/Inter-Bold.ttf"),
+    InterLight: require("./assets/fonts/Inter-Light.ttf"),
     InterSemiBold: require("./assets/fonts/Inter-SemiBold.ttf"),
     InterBoldItalic: require("./assets/fonts/InterTight-BoldItalic.ttf"),
     InterItalic: require("./assets/fonts/InterTight-Italic.ttf"),

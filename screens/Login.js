@@ -18,6 +18,7 @@ import { LogoBig } from "../assets/svgs/logo-big";
 import { Logo } from "../assets/svgs/logo";
 import OnBoardInput from "../components/OnBoardInput";
 import { validateName, validateEmail } from "../utils/Validation";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = ({ navigation }) => {
   const [name, setUsername] = useState("");
@@ -30,13 +31,7 @@ const Login = ({ navigation }) => {
       const result = await signInWithEmailAndPassword(auth, email, password);
       console.log(result);
       const _user = result.user;
-      const userDoc = await getDoc(doc(FIREBASE_DB, "users", _user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        console.log("User data from Firestore:", userData);
-      } else {
-        console.log("No such user document!");
-      }
+     
     } catch (error) {
       console.log(error);
       alert("Sign in Failed: " + error.message);
@@ -44,6 +39,8 @@ const Login = ({ navigation }) => {
       setIsLoading(false);
     }
   };
+
+  
 
   const [formData, setFormData] = useState({
     email: "",

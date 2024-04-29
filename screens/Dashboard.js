@@ -4,6 +4,8 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Pressable,
+  Image,
 } from "react-native";
 import React, { useCallback, useContext, useEffect, useState } from "react";
 import Button from "../components/Button";
@@ -17,6 +19,7 @@ import {
   doc,
   updateDoc,
   setDoc,
+  getDoc,
 } from "firebase/firestore";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -33,9 +36,11 @@ import {
 } from "../database";
 import { useFocusEffect } from "@react-navigation/native";
 import useTodoStore from "../app/todoStore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
+  const [userName, setUserName] = useState("");
 
   const { isConnected } = useContext(NetworkContext);
   const randomId = generateRandomId();
@@ -192,6 +197,7 @@ const Dashboard = ({ navigation }) => {
   };
 
   useEffect(() => {
+    gettingUserName();
     isTableEmpty((isEmpty) => {
       if (isEmpty) {
         console.log("✅table is empty");
@@ -353,93 +359,201 @@ const Dashboard = ({ navigation }) => {
     }
   };
 
+  const gettingUserName = async () => {
+    console.log("getting username....");
+    if (isConnected) {
+      const userDoc = await getDoc(doc(FIREBASE_DB, "users", user.uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        await storeUserDataInCache(userData.name);
+        setUserName(userData.name);
+        console.log("User data from Firestore:", userData);
+      } else {
+        console.log("No such user document!");
+      }
+    } else {
+      getUserDatafromCache();
+    }
+  };
+
+  const storeUserDataInCache = async (value) => {
+    try {
+      await AsyncStorage.setItem("userName", value);
+      console.log("USerData successfully saved in cache");
+    } catch (e) {
+      console.log("Failed to save the data to AsyncStorage:", e);
+    }
+  };
+
+  const getUserDatafromCache = async () => {
+    try {
+      const value = await AsyncStorage.getItem("myKey");
+      if (value !== null) {
+        console.log("Stored value is:", value);
+        setUserName(value);
+        // Use the retrieved value as needed
+      } else {
+        setUserName("N/A");
+        console.log("No data found in AsyncStorage");
+      }
+    } catch (e) {
+      console.log("Failed to fetch the data from AsyncStorage:", e);
+    }
+  };
+
   return (
-    <SafeAreaView className="bg-white flex-1">
-      <View
-        className="h-14 flex-row items-center justify-center bg-white px-4"
-        style={styles.shadowContainer}
-      >
-        <TouchableOpacity
-          onPress={() =>
-            navigation.push("Inside", { screen: "SettingsScreen" })
-          }
-        >
-          <Ionicons name="cog-outline" size={24} />
-        </TouchableOpacity>
-        <Text
-          className="text-xl font-bold flex-1"
-          style={{ textAlign: "center" }}
-        >
-          My Todos
-        </Text>
+    <SafeAreaView className="bg-white flex-1 ">
+      <Image
+        style={styles.logoWatermark}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
+      />
+      <Image
+        style={styles.logoWatermarkBottom}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
+      />
+
+      <View style={styles.floatingButton}>
         <TouchableOpacity
           onPress={() => navigation.push("Inside", { screen: "CreateTodo" })}
         >
-          <Ionicons name="add" size={24} />
+          <Ionicons name="add-outline" size={35} color="white" />
         </TouchableOpacity>
       </View>
-      <ScrollView>
-        <View className="items-center justify-center pt-4">
-          {todos.length > 0 ? (
-            todos.map((todo, index) => {
-              console.log(
-                "=>>>> Todos: " +
-                  (index + 1) +
-                  " todo id: " +
-                  todo.id +
-                  " " +
-                  todo.title +
-                  " createdAt:" +
-                  todo.createdAt +
-                  " dueDate: " +
-                  todo.dueDate +
-                  " sync? : " +
-                  todo.isSynced +
-                  " completed: " +
-                  todo.completed,
-              );
-              return (
-                <TouchableOpacity
-                  onPress={() =>
-                    navigation.push("Inside", {
-                      screen: "UpdateTodo",
-                      params: { todoData: todo },
-                    })
-                  }
-                  key={todo.id}
-                  className="h-16 flex-row bg-blue-200 my-2 mx-6 rounded-md items-center justify-center p-3 "
-                >
-                  <View className="flex-1">
-                    <View className=" flex-row justify-between">
-                      <View className="flex-grow-0 flex-shrink pr-4">
-                        <Text className="text-lg font-bold">{todo.title}</Text>
-                        <Text className="" numberOfLines={1}>
-                          {todo.description ?? "no description"}
-                        </Text>
-                      </View>
-                      <View className="justify-center">
-                        <Text>
-                          {todo.isSynced === 1 ? "synced" : "not synced"}
-                        </Text>
-                        <BouncyCheckbox
-                          isChecked={todo.completed === 1 ? true : false}
-                          size={20}
-                          fillColor="#007bff"
-                          unFillColor="#FFFFFF"
-                          innerIconStyle={{ borderWidth: 1 }}
-                          onPress={(isChecked) => {
-                            editTodoStatus(todo.id, isChecked, todo);
-                          }}
-                        />
-                      </View>
-                    </View>
+      {/* //name headings */}
+      <View className="mx-6">
+        <View className="flex-row">
+          <View className="flex-1">
+            <Text style={styles.nameHeading}>{`Hello ${userName},`}</Text>
+            <Text style={styles.nameSubtitle}>You have work today</Text>
+          </View>
+          <TouchableOpacity
+            onPress={
+              () => {}
+              //  TODO: add logic for filter here
+            }
+            className="mr-8"
+          >
+            <Ionicons name="filter-sharp" size={28} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.push("Inside", { screen: "SettingsScreen" })
+            }
+          >
+            <Ionicons name="cog-outline" size={28} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      {/* misc cards */}
+      <View className="flex-row mx-3" style={styles.miscCardWrapper}>
+        <View className="flex-1 flex-row justify-between">
+          <View className="flex-row justify-between" style={styles.miscCard1}>
+            <Text style={styles.miscCardText}>Today's Tasks</Text>
+            <Text style={styles.miscCardText}>{0}</Text>
+          </View>
+          <View className="flex-row justify-between" style={styles.miscCard2}>
+            <Text style={styles.miscCardText}>Pending Tasks</Text>
+            <Text style={styles.miscCardText}>{0}</Text>
+          </View>
+        </View>
+      </View>
+      {/* //tasks list */}
+      <Text
+        style={{
+          marginHorizontal: 24,
+          marginVertical: 10,
+          fontSize: 12,
+          fontFamily: "InterMedium",
+        }}
+      >
+        Your Tasks
+      </Text>
+      <ScrollView style={styles.wrapper}>
+        {todos.length > 0 ? (
+          todos.map((todo, index) => {
+            console.log(
+              "=>>>> Todos: " +
+                (index + 1) +
+                " todo id: " +
+                todo.id +
+                " " +
+                todo.title +
+                " createdAt:" +
+                todo.createdAt +
+                " dueDate: " +
+                todo.dueDate +
+                " sync? : " +
+                todo.isSynced +
+                " completed: " +
+                `${todo.completed === 1 ? true : false}`,
+            );
+
+            return (
+              <View
+                style={{
+                  borderRadius: 15,
+                  backgroundColor: "#fefffe",
+                  borderStyle: "solid",
+                  borderColor: "#d5d5d5",
+                  borderWidth: 1,
+                  flex: 1,
+                  width: "100%",
+                  height: 85,
+                  overflow: "hidden",
+                  marginVertical: 10,
+                }}
+                key={todo.id}
+              >
+                <View style={styles.taskCardDataParent}>
+                  <BouncyCheckbox
+                    isChecked={todo.completed === 1 ? true : false}
+                    size={20}
+                    fillColor="#34a854"
+                    unFillColor="#FFFFFF"
+                    innerIconStyle={{ borderWidth: 1 }}
+                    onPress={(isChecked) => {
+                      editTodoStatus(todo.id, isChecked, todo);
+                    }}
+                    className="mr-3"
+                  />
+                  <View
+                    style={styles.taskDataWrapper}
+                    className="flex-grow-0 flex-shrink flex-1"
+                  >
+                    <Text style={styles.taskTitle} numberOfLines={1}>
+                      {todo.title}
+                    </Text>
+                    <Text style={styles.taskDescription} numberOfLines={1}>
+                      {todo.description ?? "no description"}
+                    </Text>
                   </View>
-                </TouchableOpacity>
-              );
-            })
-          ) : (
-            <Text className>No todos</Text>
-          )}
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.push("Inside", {
+                        screen: "UpdateTodo",
+                        params: { todoData: todo },
+                      })
+                    }
+                  >
+                    <Ionicons name="create-outline" size={25} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          })
+        ) : (
+          <Text
+            className="flex-row flex-1 align-center justify-center text-center my-6"
+            style={{ fontFamily: "InterMedium", fontSize: 16 }}
+          >
+            No Tasks
+          </Text>
+        )}
+        {/* extra spacing at bottom */}
+        <View className="m-9 p-9">
+          <Text> </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -449,14 +563,147 @@ const Dashboard = ({ navigation }) => {
 export default Dashboard;
 
 const styles = StyleSheet.create({
-  shadowContainer: {
+  nameHeading: {
+    fontSize: 15,
+    fontFamily: "InterMedium",
+    color: "#000",
+  },
+  nameSubtitle: {
+    fontSize: 9,
+    fontFamily: "InterLight",
+    color: "#757575",
+  },
+
+  logoWatermark: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    zIndex: -10,
+  },
+  logoWatermarkBottom: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    zIndex: -10,
+    transform: [{ rotate: "180deg" }],
+  },
+  wrapper: {
+    marginHorizontal: 24,
+  },
+  nameContainerParent: {
+    marginLeft: 24,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    width: "100%",
+    flex: 1,
+  },
+  nameContainer: {
+    textAlign: "left",
+  },
+  miscCard1: {
+    backgroundColor: "#B4C4FF",
+    borderRadius: 10,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
-      height: 20, // Adjust the height to control the shadow's position
+      height: 2,
     },
-    shadowOpacity: 0.05,
-    shadowRadius: 10, // Adjust the shadow's size
-    elevation: 1,
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  miscCard2: {
+    backgroundColor: "#F4D8B1",
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    marginVertical: 8,
+    marginHorizontal: 10,
+    padding: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    flex: 1,
+  },
+  miscCardText: {
+    fontSize: 15,
+    fontFamily: "InterBold",
+    color: "#000",
+    textAlign: "left",
+  },
+  miscCardWrapper: {
+    marginTop: 30,
+    marginBottom: 15,
+  },
+  //
+  frameChild: {
+    top: 19,
+    left: 20,
+    width: 20,
+    height: 20,
+    position: "absolute",
+  },
+  taskTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    fontFamily: "InterBold",
+    color: "#2d2d2d",
+    textAlign: "left",
+  },
+  taskDescription: {
+    fontSize: 11,
+    fontWeight: "500",
+    fontFamily: "InterMedium",
+    color: "#757575",
+    marginTop: 6,
+    textAlign: "left",
+  },
+  taskDataWrapper: {},
+  taskCardDataParent: {
+    width: "100%",
+    padding: 20,
+    justifyContent: "center",
+    flexDirection: "row",
+    flex: 1,
+    alignItems: "center",
+  },
+  floatingButton: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+    left: "42%",
+    bottom: 30,
+    backgroundColor: "#9747FF",
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 100,
   },
 });
