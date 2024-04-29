@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  Image,
 } from "react-native";
 import React, { useContext, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -37,12 +38,30 @@ const UpdateTodo = ({ route, navigation }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(todoData.dueDate);
   const [isCompleted, setIsCompleted] = useState(todoData.completed);
-  const [openDropdown, setOpenDropdown] = useState(false);
   const { isConnected } = useContext(NetworkContext);
 
-  //new lines
+  const [isLoading, setIsLoading] = useState(false);
+
   const { deleteTodo, todos, error, updateTodo } = useTodoStore();
-  //new lines
+
+  const [selectedContainer, setSelectedContainer] = useState(
+    todoData.priority === "low" ? 1 : 2,
+  );
+
+  const handleContainerPress = (containerId) => {
+    if (selectedContainer === containerId) {
+      // If the same container is tapped again, deselect it
+      setSelectedContainer(null);
+    } else {
+      // Otherwise, select the tapped container
+      setSelectedContainer(containerId);
+      console.log("Setting priority to:", containerId === 1 ? "low" : "high");
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        priority: containerId === 1 ? "low" : "high",
+      }));
+    }
+  };
 
   const [formData, setFormData] = useState({
     title: todoData.title,
@@ -77,6 +96,7 @@ const UpdateTodo = ({ route, navigation }) => {
         if (!selectedDate) {
           alert("Please select a due date");
         } else {
+          setIsLoading(true);
           const updatedTodo = {
             title: title,
             description: description,
@@ -97,6 +117,7 @@ const UpdateTodo = ({ route, navigation }) => {
 
             editTodoLocally(_updatedTodo);
           }
+          setIsLoading(false);
         }
       } else {
         console.log("Form submission failed");
@@ -212,27 +233,33 @@ const UpdateTodo = ({ route, navigation }) => {
 
   return (
     <SafeAreaView className="bg-white flex-1">
-      <View
-        className="h-14 bg-white items-center flex-row justify-center"
-        style={styles.shadowContainer}
-      >
+      <Image
+        style={styles.logoWatermark}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
+      />
+      <Image
+        style={styles.logoWatermarkBottom}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
+      />
+      <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.pop()}>
-          <View className="pl-4">
-            <Ionicons name="chevron-back-outline" size={24} />
-          </View>
+          <Ionicons name="arrow-back" size={22} />
         </TouchableOpacity>
+        <Text style={styles.headerText} className="flex-1">
+          Edit your task
+        </Text>
 
-        <Text className="text-xl font-bold flex-1 text-center ">Edit Todo</Text>
         <TouchableOpacity onPress={() => deleteTodos()}>
-          <View className="pr-4">
-            <Ionicons name="trash-outline" size={24} />
-          </View>
+          <Ionicons name="trash-outline" size={22} color="rgba(255, 0,0,0.6)" />
         </TouchableOpacity>
       </View>
-      <View>
+      <ScrollView className="mx-6 mt-4">
         <View className="mx-4 items-center justify-center flex-row">
           <View className=" flex-1">
             <Input
+              label="Title"
               value={formData.title}
               onChangeText={(value) => handleChange("title", value)}
               placeholder="Enter your title"
@@ -240,60 +267,94 @@ const UpdateTodo = ({ route, navigation }) => {
               errorMessage={formData.titleError}
             />
             <Input
+              label="Description"
               value={formData.description}
               onChangeText={(value) => handleChange("description", value)}
               placeholder="Enter your description"
               isValid={!formData.descError}
               errorMessage={formData.descError}
             />
-            <View className="flex-row items-center py-4">
-              <View className=" flex-row w-1/2">
-                <Text className="flex-1">
-                  Due Date: {selectedDate ? epochToDate(selectedDate) : ""}
-                </Text>
-                <TouchableOpacity onPress={toggleCalendar}>
-                  <View className="pl-1">
-                    <Ionicons
-                      name={
-                        selectedDate
-                          ? "calendar-outline"
-                          : "calendar-clear-outline"
-                      }
-                      size={24}
-                      color="#007bff"
-                    />
-                  </View>
-                </TouchableOpacity>
-              </View>
-              <View className="w-1/2 flex-row items-center pl-4">
-                <Text>Priority:</Text>
-                <View style={styles.dropdownContainer} className="pl-4">
-                  <DropDownPicker
-                    open={openDropdown}
-                    value={formData.priority}
-                    items={[
-                      { label: "High", value: "high" },
-                      { label: "Low", value: "low" },
-                    ]}
-                    setOpen={setOpenDropdown}
-                    setValue={(callback) => {
-                      // Here we extract the value directly
-                      const newValue = callback(formData.priority);
-                      console.log("Setting priority to:", newValue);
-                      setFormData((prevFormData) => ({
-                        ...prevFormData,
-                        priority: newValue,
-                      }));
-                    }}
-                    setItems={() => {}}
-                    placeholder="Select priority"
-                    style={styles.dropdown}
-                    dropDownContainerStyle={styles.dropDownContainerStyle}
+
+            <Text style={styles.label}>Due Date</Text>
+            <View
+              className="flex-row justify-between"
+              style={styles.dueDateContainer}
+            >
+              <Text
+                style={{
+                  color: `${selectedDate ? "black" : "gray"}`,
+                }}
+              >
+                {selectedDate ? epochToDate(selectedDate) : "Select a due date"}
+              </Text>
+              <TouchableOpacity onPress={toggleCalendar}>
+                <View className="pl-1">
+                  <Ionicons
+                    name={
+                      selectedDate
+                        ? "calendar-outline"
+                        : "calendar-clear-outline"
+                    }
+                    size={22}
+                    color="#9747FF"
                   />
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
 
+            {/* priority containers */}
+            <Text style={[styles.label, { marginTop: 10 }]}>Priority</Text>
+            <View style={styles.priorityContainers}>
+              <TouchableOpacity
+                style={[
+                  styles.lowPriorityContainer,
+                  selectedContainer === 1 && { backgroundColor: "#9747FF" },
+                ]}
+                onPress={() => handleContainerPress(1)}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+
+                    fontFamily: "InterBold",
+                    color: selectedContainer === 1 ? "#fff" : "#000",
+                    textAlign: "left",
+                  }}
+                >
+                  Low
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.highPriorityContainer,
+                  selectedContainer === 2 && { backgroundColor: "#9747FF" },
+                ]}
+                onPress={() => handleContainerPress(2)}
+              >
+                <Text
+                  style={{
+                    fontSize: 14,
+                    fontFamily: "InterBold",
+                    color: selectedContainer === 2 ? "#fff" : "#000",
+                    textAlign: "left",
+                  }}
+                >
+                  High
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* submit button */}
+            <View className="mt-14">
+              <Button
+                title="Save Changes"
+                onPress={handleSubmit}
+                isLoading={isLoading}
+                color="#9747FF"
+              />
+            </View>
+
+            {/* calendar modal */}
             <Modal
               animationType="slide"
               transparent={true}
@@ -307,6 +368,14 @@ const UpdateTodo = ({ route, navigation }) => {
                     selected={selectedDate}
                     minimumDate={startDate}
                     onDateChange={handleDateChange}
+                    options={{
+                      textHeaderColor: "#9747FF",
+                      textDefaultColor: "#000",
+                      selectedTextColor: "#fff",
+                      mainColor: "#9747FF",
+                      textSecondaryColor: "#c69aff",
+                      borderColor: "#dec4ff",
+                    }}
                   />
                   <TouchableOpacity onPress={toggleCalendar}>
                     <Text>Close</Text>
@@ -314,13 +383,9 @@ const UpdateTodo = ({ route, navigation }) => {
                 </View>
               </View>
             </Modal>
-
-            <View className="mt-16">
-              <Button title="Edit Todo" onPress={handleSubmit} />
-            </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -372,5 +437,92 @@ const styles = StyleSheet.create({
   },
   dropDownContainerStyle: {
     backgroundColor: "#ffffff",
+  },
+
+  //new changes
+  logoWatermark: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    zIndex: -10,
+  },
+  logoWatermarkBottom: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    zIndex: -10,
+    transform: [{ rotate: "180deg" }],
+  },
+  header: {
+    flexDirection: "row",
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  headerText: {
+    fontSize: 18,
+    fontFamily: "InterMedium",
+    color: "#444",
+    textAlign: "center",
+  },
+  label: {
+    marginLeft: 10,
+    fontSize: 13,
+    fontFamily: "InterMediumItalic",
+  },
+  dueDateContainer: {
+    marginVertical: 4,
+    height: 50,
+    borderRadius: 15.6,
+    padding: 10,
+    fontSize: 14,
+    borderColor: "rgba(0, 0, 0, 0.2)",
+    borderWidth: 1.1,
+    width: "100%",
+    flexDirection: "row",
+    overflow: "hidden",
+    fontFamily: "InterMedium",
+    alignItems: "center",
+  },
+  dueDateText: {
+    fontSize: 14,
+    fontFamily: "InterMedium",
+  },
+
+  //priority changes
+  priorityContainers: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+
+    marginTop: 8,
+    height: 50,
+    width: "100%",
+  },
+  lowPriorityContainer: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dfc7ff",
+    marginHorizontal: 5,
+    width: "100%",
+  },
+  highPriorityContainer: {
+    flex: 1,
+    borderRadius: 8,
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#dfc7ff",
+    marginHorizontal: 5,
+    width: "100%",
   },
 });

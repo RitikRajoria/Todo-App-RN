@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import React, { useContext } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Button from "../components/Button";
@@ -13,7 +13,7 @@ const SettingsScreen = ({ navigation }) => {
   const { clearAll } = useTodoStore();
   return (
     <SafeAreaView className="bg-white flex-1 pt-2">
-      <View
+      {/* <View
         className="pr-4 h-14 bg-white items-center flex-row justify-center"
         style={styles.shadowContainer}
       >
@@ -26,16 +26,44 @@ const SettingsScreen = ({ navigation }) => {
         <Text className="text-xl font-bold flex-1 text-center pr-5">
           Settings
         </Text>
-      </View>
-      <Button
-        title={"Sign Out"}
-        onPress={() => {
-          setUser(null);
-          clearTodos();
-          clearAll();
-          FIREBASE_AUTH.signOut();
-        }}
+      </View> */}
+      <Image
+        style={styles.logoWatermark}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
       />
+      <Image
+        style={styles.logoWatermarkBottom}
+        resizeMode="cover"
+        source={require("../assets/images/gradient_logo.png")}
+      />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.pop()}>
+          <Ionicons name="arrow-back" size={22} />
+        </TouchableOpacity>
+        <Text style={styles.headerText} className="flex-1">
+          Settings
+        </Text>
+
+        <Ionicons name="trash-outline" size={22} color="white" />
+      </View>
+      <Text className="mx-20 text-center">
+        This page can contain user profile changes like name, profile pic and
+        other details, but for now im just adding log out functionality here.
+      </Text>
+      <View className="mx-16 items-center justify-center flex-1">
+        <Button
+          title={"Log Out"}
+          onPress={() => {
+            setUser(null);
+            clearTodos();
+            clearAll();
+            FIREBASE_AUTH.signOut();
+          }}
+          isLoading={null}
+          color="#9747FF"
+        />
+      </View>
     </SafeAreaView>
   );
 };
@@ -78,5 +106,35 @@ const styles = StyleSheet.create({
   overlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(128, 128, 128, 0.5)",
+  },
+  logoWatermark: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    left: 0,
+    top: 0,
+    zIndex: -10,
+  },
+  logoWatermarkBottom: {
+    height: 100,
+    width: 100,
+    position: "absolute",
+    right: 0,
+    bottom: 0,
+    zIndex: -10,
+    transform: [{ rotate: "180deg" }],
+  },
+  header: {
+    flexDirection: "row",
+    width: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  headerText: {
+    fontSize: 18,
+    fontFamily: "InterMedium",
+    color: "#444",
+    textAlign: "center",
   },
 });
