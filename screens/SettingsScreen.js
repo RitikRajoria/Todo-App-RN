@@ -13,20 +13,6 @@ const SettingsScreen = ({ navigation }) => {
   const { clearAll } = useTodoStore();
   return (
     <SafeAreaView className="bg-white flex-1 pt-2">
-      {/* <View
-        className="pr-4 h-14 bg-white items-center flex-row justify-center"
-        style={styles.shadowContainer}
-      >
-        <TouchableOpacity onPress={() => navigation.pop()}>
-          <View className="pl-4">
-            <Ionicons name="chevron-back-outline" size={24} />
-          </View>
-        </TouchableOpacity>
-
-        <Text className="text-xl font-bold flex-1 text-center pr-5">
-          Settings
-        </Text>
-      </View> */}
       <Image
         style={styles.logoWatermark}
         resizeMode="cover"
