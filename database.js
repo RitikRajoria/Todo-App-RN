@@ -1,4 +1,8 @@
 import * as SQLite from "expo-sqlite";
+import {
+  getStartOfDayTimestamp,
+  getStartOfNextDayTimestamp,
+} from "./utils/DateUtils";
 
 const db = SQLite.openDatabase("todos.db");
 
@@ -159,6 +163,127 @@ const getUnsyncedTodos = (callback) => {
   });
 };
 
+const fetchHighPriorityTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE priority = 'high';",
+      [],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching high priority todos:", error);
+        callback([]);
+      },
+    );
+  });
+};
+const fetchLowPriorityTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE priority = 'low';",
+      [],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching low priority todos:", error);
+        callback([]);
+      },
+    );
+  });
+};
+const fetchCompletedTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE completed = 1;",
+      [],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching completed todos:", error);
+        callback([]);
+      },
+    );
+  });
+};
+const fetchIncompletedTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE completed = 0;",
+      [],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching completed todos:", error);
+        callback([]);
+      },
+    );
+  });
+};
+
+const fetchTodaysTodos = (startTime, endTime, callback) => {
+  console.log(startTime + " " + endTime + " 😀");
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT * FROM todos WHERE dueDate >= ? AND dueDate <= ?;",
+      [startTime, endTime],
+      (_, { rows: { _array } }) => callback(_array),
+      (_, error) => {
+        console.error("Error fetching todos by due date range:", error);
+        callback([]);
+      },
+    );
+  });
+};
+
+const countCompletedTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT COUNT(*) AS count FROM todos WHERE completed = 1;",
+      [],
+      (_, { rows: { _array } }) => {
+        const count = _array.length > 0 ? _array[0].count : 0;
+        callback(count);
+      },
+      (_, error) => {
+        console.error("Error counting completed todos:", error);
+        callback(0);
+      },
+    );
+  });
+};
+
+const countInCompletedTodos = (callback) => {
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT COUNT(*) AS count FROM todos WHERE completed = 0;",
+      [],
+      (_, { rows: { _array } }) => {
+        const count = _array.length > 0 ? _array[0].count : 0;
+        callback(count);
+      },
+      (_, error) => {
+        console.error("Error counting not completed todos:", error);
+        callback(0);
+      },
+    );
+  });
+};
+
+const countTodosDueToday = (callback) => {
+  const startTime = getStartOfDayTimestamp();
+  const endTime = getStartOfNextDayTimestamp();
+  db.transaction((tx) => {
+    tx.executeSql(
+      "SELECT COUNT(*) AS count FROM todos WHERE dueDate >= ? AND dueDate < ?;",
+      [startTime, endTime],
+      (_, { rows: { _array } }) => {
+        const count = _array.length > 0 ? _array[0].count : 0;
+        callback(count);
+      },
+      (_, error) => {
+        console.error("Error counting todos due today:", error);
+        callback(0);
+      },
+    );
+  });
+};
+
 export {
   init,
   insertTodo,
@@ -169,4 +294,12 @@ export {
   syncToggle,
   isTableEmpty,
   getUnsyncedTodos,
+  fetchCompletedTodos,
+  fetchIncompletedTodos,
+  fetchTodaysTodos,
+  countCompletedTodos,
+  countInCompletedTodos,
+  countTodosDueToday,
+  fetchHighPriorityTodos,
+  fetchLowPriorityTodos,
 };

@@ -18,4 +18,17 @@ export const epochToDate = (epochTime) => {
   return `${year}/${month}/${day}`;
 };
 
+export const getStartOfDayTimestamp = () => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
 
+  return currentDate.getTime();
+};
+
+export const getStartOfNextDayTimestamp = () => {
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+  currentDate.setDate(currentDate.getDate() + 1);
+
+  return currentDate.getTime();
+};

@@ -8,14 +8,12 @@ import {
   Image,
 } from "react-native";
 import React, { useCallback, useContext, useEffect, useState } from "react";
-import Button from "../components/Button";
+
 import { FIREBASE_AUTH, FIREBASE_DB } from "../FirebaseConfig";
 import { UserContext } from "../App";
 import {
   collection,
-  onSnapshot,
   getDocs,
-  orderBy,
   doc,
   updateDoc,
   setDoc,
@@ -28,19 +26,21 @@ import { generateRandomId } from "../utils/RandomID";
 import BouncyCheckbox from "react-native-bouncy-checkbox";
 import Toast from "react-native-toast-message";
 import {
-  fetchTodos,
   getUnsyncedTodos,
-  init,
   isTableEmpty,
-  updateTodo,
+  countInCompletedTodos,
+  countTodosDueToday,
 } from "../database";
 import { useFocusEffect } from "@react-navigation/native";
 import useTodoStore from "../app/todoStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import CustomBottomSheet from "../components/CustomBottomSheet";
 
 const Dashboard = ({ navigation }) => {
   const { user } = useContext(UserContext);
   const [userName, setUserName] = useState("");
+  const [todayTaskCount, setTodayTaskCount] = useState(0);
+  const [pendingTaskCount, setPendingTaskCount] = useState(0);
 
   const { isConnected } = useContext(NetworkContext);
   const randomId = generateRandomId();
@@ -49,7 +49,19 @@ const Dashboard = ({ navigation }) => {
 
   const { todos, fetchTodos, updateTodo, addTodo, error } = useTodoStore();
 
-  //TODO: dont remove
+  const [isVisible, setIsVisible] = useState(false);
+  const [filter, setFilter] = useState(null);
+
+  const toggleFiltersBottomSheet = () => {
+    setIsVisible(!isVisible);
+  };
+
+  const handleSelectFilter = (selectedFilter) => {
+    setFilter(selectedFilter);
+    setIsVisible(false);
+    console.log("Filter selected:", selectedFilter);
+  };
+
   const fetchTodosFromFirebase = async (isFirstTimeFlow, unsyncedTodos) => {
     // isFirstTimeFlow is being used to check if we are getting from firebase or uploading. true means fetching from FB and adding to local and vice versa
     try {
@@ -79,7 +91,7 @@ const Dashboard = ({ navigation }) => {
       });
 
       if (!isFirstTimeFlow && unsyncedTodos) {
-        await uploadUnsyncedTodos(unsyncedTodos, initialTodos);
+        uploadUnsyncedTodos(unsyncedTodos, initialTodos);
       }
 
       if (error) {
@@ -95,45 +107,21 @@ const Dashboard = ({ navigation }) => {
     }
   };
 
-  // code for auto updating todos when some chnages happen in firestore
-  // useEffect(() => {
-  //   const unsubscribe = onSnapshot(
-  //     collection(FIREBASE_DB, `todos/${user.uid}/${user.uid}`),
-  //     orderBy("title", "asc"),
-  //     (snapshot) => {
-  //       snapshot.docChanges().forEach((change) => {
-  //         if (change.type === "added") {
-  //           // Handle added document
-  //           setTodos((prevTodos) => [
-  //             ...prevTodos,
-  //             { id: change.doc.id, ...change.doc.data() },
-  //           ]);
-  //         }
-  //         if (change.type === "modified") {
-  //           // Handle modified document
-  //           setTodos((prevTodos) =>
-  //             prevTodos.map((todo) =>
-  //               todo.id === change.doc.id
-  //                 ? { id: change.doc.id, ...change.doc.data() }
-  //                 : todo,
-  //             ),
-  //           );
-  //         }
-  //         if (change.type === "removed") {
-  //           // Handle removed document
-  //           setTodos((prevTodos) =>
-  //             prevTodos.filter((todo) => todo.id !== change.doc.id),
-  //           );
-  //         }
-  //       });
-  //     },
-  //   );
-
-  //   fetchTodos();
-
-  //   // Return the cleanup function to unsubscribe when component unmounts
-  //   return () => unsubscribe();
-  // }, []);
+  const renderDynamicHeading = (text) => {
+    if (text === "completed") {
+      return "Your Completed Tasks";
+    } else if (text === "not_completed") {
+      return "Your Pending Tasks";
+    } else if (text === "today") {
+      return "Your Tasks For Today";
+    } else if (text === "high") {
+      return "Your High Priority Tasks";
+    } else if (text === "low") {
+      return "Your Low Priority Tasks";
+    } else {
+      return "Your Tasks";
+    }
+  };
 
   const editTodoStatusFirebase = async (
     todoId,
@@ -213,19 +201,36 @@ const Dashboard = ({ navigation }) => {
         fetchTodos();
 
         getUnsyncedTodos((unsyncedTodos, todosListFromFirebase) => {
+          const countForAlert = 0;
           if (unsyncedTodos.length > 0) {
             if (isConnected) {
               fetchTodosFromFirebase(false, unsyncedTodos);
             } else {
-              alert(
-                "Turn on internet to sync your todos with server! \n Go to 'Settings > Sync todos' to save your todos in server ",
-              );
+              if (countForAlert < 1) {
+                alert(
+                  "Turn on internet to sync your todos with server! \n Go to 'Settings > Sync todos' to save your todos in server ",
+                );
+              }
+              countForAlert = 1;
             }
           }
         });
       }
     });
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      countInCompletedTodos((count) => {
+        setPendingTaskCount(count);
+      });
+      countTodosDueToday((count) => {
+        setTodayTaskCount(count);
+      });
+
+      return () => {};
+    }, []),
+  );
 
   const uploadUnsyncedTodos = (unsyncedTodos, todosFromFirebase) => {
     console.log(
@@ -337,7 +342,7 @@ const Dashboard = ({ navigation }) => {
   };
   //editing page code
 
-  const editTodoStatus = (id, isChecked, todo) => {
+  const editTodoStatus = async (id, isChecked, todo) => {
     const todoData = {
       title: todo.title,
       description: todo.description,
@@ -346,7 +351,7 @@ const Dashboard = ({ navigation }) => {
     };
 
     if (isConnected) {
-      editTodoStatusFirebase(id, isChecked, todo.priority, todoData);
+      await editTodoStatusFirebase(id, isChecked, todo.priority, todoData);
     } else {
       const newTodo = {
         ...todoData,
@@ -355,8 +360,11 @@ const Dashboard = ({ navigation }) => {
         isSynced: 0,
         id: id,
       };
-      editTodoStatusLocal(newTodo);
+      await editTodoStatusLocal(newTodo);
     }
+    countInCompletedTodos((count) => {
+      setPendingTaskCount(count);
+    });
   };
 
   const gettingUserName = async () => {
@@ -428,13 +436,7 @@ const Dashboard = ({ navigation }) => {
             <Text style={styles.nameHeading}>{`Hello ${userName},`}</Text>
             <Text style={styles.nameSubtitle}>You have work today</Text>
           </View>
-          <TouchableOpacity
-            onPress={
-              () => {}
-              //  TODO: add logic for filter here
-            }
-            className="mr-8"
-          >
+          <TouchableOpacity onPress={toggleFiltersBottomSheet} className="mr-8">
             <Ionicons name="filter-sharp" size={28} />
           </TouchableOpacity>
           <TouchableOpacity
@@ -451,11 +453,11 @@ const Dashboard = ({ navigation }) => {
         <View className="flex-1 flex-row justify-between">
           <View className="flex-row justify-between" style={styles.miscCard1}>
             <Text style={styles.miscCardText}>Today's Tasks</Text>
-            <Text style={styles.miscCardText}>{0}</Text>
+            <Text style={styles.miscCardText}>{todayTaskCount}</Text>
           </View>
           <View className="flex-row justify-between" style={styles.miscCard2}>
             <Text style={styles.miscCardText}>Pending Tasks</Text>
-            <Text style={styles.miscCardText}>{0}</Text>
+            <Text style={styles.miscCardText}>{pendingTaskCount}</Text>
           </View>
         </View>
       </View>
@@ -468,7 +470,7 @@ const Dashboard = ({ navigation }) => {
           fontFamily: "InterMedium",
         }}
       >
-        Your Tasks
+        {renderDynamicHeading(filter)}
       </Text>
       <ScrollView style={styles.wrapper}>
         {todos.length > 0 ? (
@@ -507,6 +509,22 @@ const Dashboard = ({ navigation }) => {
                 key={todo.id}
               >
                 <View style={styles.taskCardDataParent}>
+                  <View
+                    style={[
+                      styles.isSynced,
+                      {
+                        backgroundColor:
+                          todo.isSynced === 1 ? "#7CFC00" : "#DC143C",
+                      },
+                    ]}
+                  />
+                  <View style={styles.priorityFlag}>
+                    {todo.priority === "high" ? (
+                      <Ionicons name="flag-outline" size={12} color="black" />
+                    ) : (
+                      <></>
+                    )}
+                  </View>
                   <BouncyCheckbox
                     isChecked={todo.completed === 1 ? true : false}
                     size={20}
@@ -555,6 +573,12 @@ const Dashboard = ({ navigation }) => {
         <View className="m-9 p-9">
           <Text> </Text>
         </View>
+        <CustomBottomSheet
+          isVisible={isVisible}
+          onClose={toggleFiltersBottomSheet}
+          onSelect={handleSelectFilter}
+          isSelected={filter}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -563,6 +587,20 @@ const Dashboard = ({ navigation }) => {
 export default Dashboard;
 
 const styles = StyleSheet.create({
+  isSynced: {
+    position: "absolute",
+    right: 10,
+    top: 10,
+
+    height: 10,
+    width: 10,
+    borderRadius: 20,
+  },
+  priorityFlag: {
+    position: "absolute",
+    right: 30,
+    top: 8,
+  },
   nameHeading: {
     fontSize: 15,
     fontFamily: "InterMedium",

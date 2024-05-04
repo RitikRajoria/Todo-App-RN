@@ -31,7 +31,7 @@ import { NetworkContext } from "../contexts/NetworkContext";
 const CreateTodo = ({ navigation }) => {
   const today = new Date();
   const currentDate = today.getTime();
-  const startDate = getFormatedDate(today.setDate(today.getDate() + 1));
+  const startDate = getFormatedDate(today.setDate(today.getDate()));
   const { user } = useContext(UserContext);
   const [calendarOpen, setCalendarOpen] = useState(false);
 
